@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { signInStart, signInSuccess, signInFailure } from '../redux/user/userSlice';
 
 
 function Signin() {
   const [formData, setFormData] = useState({});
-  const [errors, setErrors] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const {loading, error} = useSelector((state) => state.user);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const handleChange =  (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
   const handleSubmit =  async (e) => {
     e.preventDefault();
     try {
-      setLoading(true);
+      dispatch(signInStart());
     const res = await fetch('/api/auth/signin', {
       method: 'POST',
       headers: {
@@ -24,19 +26,15 @@ function Signin() {
     });
     const data = await res.json();
     if (data.success == false) {
-      setLoading(false);
-      setErrors(data.message);
+      dispatch(signInFailure(data.message));
       
       return;
     }
-    setLoading(false);
-    console.log(data);
-    setErrors(null);
+    dispatch(signInSuccess(data));
     navigate('/');
       
     } catch (error) {
-      setLoading(false);
-      setErrors(error.message);
+      dispatch(signInFailure(error.message));
       
     }
     
@@ -120,7 +118,7 @@ function Signin() {
             Sign up
           </Link>
         </p>
-        {errors && <p className="text-red-500 text-sm text-center mt-8">{errors}</p>}
+        {error && <p className="text-red-500 text-sm text-center mt-8">{error}</p>}
 
       </motion.div>
     </div>
