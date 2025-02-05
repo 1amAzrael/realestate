@@ -2,12 +2,19 @@ import React, { useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { EnvelopeIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import {updateUserStart,updateUserSuccess,updateUserFailure} from '../redux/user/userSlice';
+import { useDispatch } from 'react-redux';
 
 function Profile() {
+
   const fileRef = useRef(null);
   const { currentUser } = useSelector((state) => state.user);
   // Initialize local state with the current user's photoURL
   const [photoURL, setPhotoURL] = useState(currentUser.photoURL);
+  const [formData, setFormData] = useState({});
+
+  const dispatch = useDispatch();
+  
 
   const uploadImage = async (e) => {
     const file = e.target.files[0];
@@ -35,6 +42,38 @@ function Profile() {
       console.error('Error uploading image:', error);
     }
   };
+
+ const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+        dispatch(updateUserStart());
+
+        const updatedData = { ...formData, photoURL }; // Include updated photoURL
+
+        const res = await fetch(`/api/user/update/${currentUser._id}`, {
+            method: 'POST', // Use PUT instead of POST
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedData),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            dispatch(updateUserFailure(data.message || "Failed to update profile"));
+            return;
+        }
+
+        dispatch(updateUserSuccess(data));
+
+    } catch (error) {
+        dispatch(updateUserFailure(error.message));
+    }
+};
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center items-center font-sans">
@@ -66,13 +105,14 @@ function Profile() {
         </div>
 
         {/* Profile Form */}
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
                 Username
               </label>
               <input
+              onChange={handleChange}
                 type="text"
                 id="username"
                 placeholder="Username"
@@ -85,6 +125,7 @@ function Profile() {
                 Email
               </label>
               <input
+              onChange={handleChange}
                 type="email"
                 id="email"
                 placeholder="Email"
@@ -97,6 +138,7 @@ function Profile() {
                 Password
               </label>
               <input
+              onChange={handleChange}
                 type="password"
                 id="password"
                 placeholder="Enter new password"
