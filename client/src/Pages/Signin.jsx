@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { signInStart, signInSuccess, signInFailure } from '../redux/user/userSlice';
+import OAuth from '../Component/OAuth';
 
 
 function Signin() {
@@ -106,6 +107,7 @@ function Signin() {
           >
            {loading ? 'Loading...' : 'Sign In'}
           </motion.button>
+          <OAuth />
         </form>
 
         

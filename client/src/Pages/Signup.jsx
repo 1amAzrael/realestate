@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import OAuth from '../Component/OAuth';
 
 
 function Signup() {
@@ -119,6 +120,7 @@ function Signup() {
           >
            {loading ? 'Loading...' : 'Sign Up'}
           </motion.button>
+          <OAuth/>
         </form>
 
         
