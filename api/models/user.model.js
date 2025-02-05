@@ -17,7 +17,7 @@ const userSchema = new mongoose.Schema({
     },
     photoURL: {
         type: String,
-        default: "https://img.freepik.com/premium-vector/avatar-profile-icon-flat-style-female-user-profile-vector-illustration-isolated-background-women-profile-sign-business-concept_157943-38866.jpg?semt=ais_hybrid",
+        default: "https://img.freepik.com/premium-vector/vector-flat-illustration-grayscale-avatar-user-profile-person-icon-profile-picture-suitable-social-media-profiles-icons-screensavers-as-templatex9xa_719432-1040.jpg?semt=ais_hybrid",
     },
 },{timestamps: true});
 
