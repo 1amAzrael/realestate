@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { EnvelopeIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
-import {updateUserStart,updateUserSuccess,updateUserFailure} from '../redux/user/userSlice';
+import {updateUserStart,updateUserSuccess,updateUserFailure,deleteUserStart,deleteUserSuccess,deleteUserFailure,signOutUserStart,signOutUserSuccess,signOutUserFailure} from '../redux/user/userSlice';
 import { useDispatch } from 'react-redux';
 
 function Profile() {
@@ -73,6 +73,43 @@ function Profile() {
         dispatch(updateUserFailure(error.message));
     }
 };
+
+    const handleDeleteUser = async () => {
+        try {
+            dispatch(deleteUserStart());
+            const res = await fetch(`/api/user/delete/${currentUser._id}`, {
+                method: 'DELETE',
+            });
+            const data = await res.json();
+            if(data.success==false){
+                dispatch(deleteUserFailure(data.message));
+                return;
+            }
+            dispatch(deleteUserSuccess(data));
+            
+        } catch (error) {
+            dispatch(deleteUserFailure(error.message));
+        }
+        
+    };
+
+    const handleSignOut = async() => {
+        try {
+            dispatch(signOutUserStart());
+            const res = await fetch('/api/auth/signout');
+            const data = await res.json();
+            if(data.success==false){
+                dispatch(signOutUserFailure(data.message));
+                return;
+            }
+            dispatch(signOutUserSuccess(data));
+            
+            
+        } catch (error) {
+            dispatch(signOutUserFailure(error.message));
+        }
+
+    }
 
 
   return (
@@ -156,14 +193,14 @@ function Profile() {
 
         {/* Footer Actions */}
         <div className="flex justify-between mt-8 pt-6 border-t border-gray-100">
-          <button className="text-red-600 hover:text-red-700 transition-colors flex items-center font-medium">
+          <button onClick={handleDeleteUser} className="text-red-600 hover:text-red-700 transition-colors flex items-center font-medium">
             {/* Replace with your own delete account icon or action */}
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
             Delete Account
           </button>
-          <button className="text-blue-600 hover:text-blue-700 transition-colors flex items-center font-medium">
+          <button onClick={handleSignOut} className="text-blue-600 hover:text-blue-700 transition-colors flex items-center font-medium">
             {/* Replace with your own sign out icon or action */}
             <EnvelopeIcon className="w-5 h-5 mr-2" />
             Sign Out
