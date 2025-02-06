@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { EnvelopeIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import {updateUserStart,updateUserSuccess,updateUserFailure,deleteUserStart,deleteUserSuccess,deleteUserFailure,signOutUserStart,signOutUserSuccess,signOutUserFailure} from '../redux/user/userSlice';
+import { Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 
 function Profile() {
@@ -12,6 +13,8 @@ function Profile() {
   // Initialize local state with the current user's photoURL
   const [photoURL, setPhotoURL] = useState(currentUser.photoURL);
   const [formData, setFormData] = useState({});
+  const [showListingsError, setShowListingsError] = useState(false);
+  const [userListings, setUserListings] = useState([]);
 
   const dispatch = useDispatch();
   
@@ -111,103 +114,188 @@ function Profile() {
 
     }
 
+    const handleShowListings = async() => {
+        try {
+          setShowListingsError(false);
+          const res = await fetch(`/api/user/listings/${currentUser._id}`);
+          const data = await res.json();
+          if(data.success==false){
+            setShowListingsError(true);
+            return;
+          }
+          setUserListings(data);
+         
+          
+            
+            
+        } catch (error) {
+          setShowListingsError(true);
+            
+        }
+
+    }
+
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center items-center font-sans">
-      <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-3xl">
-        {/* Profile Header */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="relative group group-hover:shadow-lg">
-            <input
-              type="file"
-              ref={fileRef}
-              hidden
-              accept="image/*"
-              onChange={uploadImage}
-            />
+    <div className="min-h-screen flex bg-gray-100">
+  {/* Sidebar */}
+  <aside className="w-64 bg-white shadow-md">
+    <div className="p-6 border-b">
+      <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
+    </div>
+    <nav className="mt-4">
+      <Link
+        to="/profile"
+        className="block px-6 py-3 text-gray-700 hover:bg-gray-200 transition-colors"
+      >
+        Profile
+      </Link>
+      <Link 
+        to="/create-listing"
+        
+        className="block px-6 py-3 text-gray-700 hover:bg-gray-200 transition-colors"
+      >
+       Create Listings
+      </Link>
+      
+    </nav>
+  </aside>
+
+  {/* Main Content */}
+  <main className="flex-1 p-8">
+    {/* Header */}
+    <header className="flex justify-between items-center mb-8">
+      <h1 className="text-3xl font-semibold text-gray-800">My Dashboard</h1>
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Search..."
+          className="border rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <svg
+          className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M12.9 14.32a8 8 0 111.414-1.414l4.387 4.387a1 1 0 01-1.414 1.414l-4.387-4.387zM8 14A6 6 0 108 2a6 6 0 000 12z"
+          />
+        </svg>
+      </div>
+    </header>
+
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Profile Section */}
+      <section id="profile" className="bg-white p-6 rounded-lg shadow">
+        <div className="flex flex-col items-center mb-6">
+          <input
+            type="file"
+            ref={fileRef}
+            hidden
+            accept="image/*"
+            onChange={uploadImage}
+          />
+          <div className="relative">
             <img
               onClick={() => fileRef.current.click()}
-              className="w-32 h-32 rounded-full border-4 border-gray-100 object-cover transition-all duration-300 group-hover:border-blue-100 cursor-pointer"
-              src={photoURL || "https://source.unsplash.com/random/800x800/?person"}
+              className="w-24 h-24 rounded-full object-cover border-2 border-blue-500 cursor-pointer transition-transform duration-300 hover:scale-105"
+              src={photoURL || 'https://source.unsplash.com/random/800x800/?person'}
               alt="Profile"
             />
+            <span className="absolute bottom-0 right-0 bg-blue-500 text-white text-xs rounded-full px-2 py-1">
+              Edit
+            </span>
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            {currentUser.username || "Your Name"}
-          </h2>
-          <div className="flex items-center mt-2 text-gray-600">
-            <EnvelopeIcon className="w-5 h-5 mr-2" />
-            <span>{currentUser.email}</span>
-          </div>
+          <h2 className="mt-4 text-xl font-bold">{currentUser.username || 'Your Name'}</h2>
+          <p className="text-gray-600 flex items-center mt-1">
+            <EnvelopeIcon className="w-5 h-5 mr-1" />
+            {currentUser.email}
+          </p>
         </div>
-
-        {/* Profile Form */}
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                Username
-              </label>
-              <input
-              onChange={handleChange}
-                type="text"
-                id="username"
-                placeholder="Username"
-                defaultValue={currentUser.username}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-              onChange={handleChange}
-                type="email"
-                id="email"
-                placeholder="Email"
-                defaultValue={currentUser.email}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div className="col-span-full">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <input
-              onChange={handleChange}
-                type="password"
-                id="password"
-                placeholder="Enter new password"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <input
+            onChange={handleChange}
+            type="text"
+            id="username"
+            placeholder="Username"
+            defaultValue={currentUser.username}
+            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            onChange={handleChange}
+            type="email"
+            id="email"
+            placeholder="Email"
+            defaultValue={currentUser.email}
+            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <input
+            onChange={handleChange}
+            type="password"
+            id="password"
+            placeholder="Enter new password"
+            className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
           <button
             type="submit"
-            className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-[1.01]"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
           >
             Update Profile
           </button>
         </form>
-
-        {/* Footer Actions */}
-        <div className="flex justify-between mt-8 pt-6 border-t border-gray-100">
-          <button onClick={handleDeleteUser} className="text-red-600 hover:text-red-700 transition-colors flex items-center font-medium">
-            {/* Replace with your own delete account icon or action */}
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+        <div className="flex justify-between mt-4">
+          <button onClick={handleDeleteUser} className="text-red-600 hover:underline">
             Delete Account
           </button>
-          <button onClick={handleSignOut} className="text-blue-600 hover:text-blue-700 transition-colors flex items-center font-medium">
-            {/* Replace with your own sign out icon or action */}
-            <EnvelopeIcon className="w-5 h-5 mr-2" />
+          <button onClick={handleSignOut} className="text-blue-600 hover:underline">
             Sign Out
           </button>
         </div>
-      </div>
+      </section>
+
+      {/* Listings Section */}
+      <section id="listings" className="bg-white p-6 rounded-lg shadow">
+        <button
+          onClick={handleShowListings}
+          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition mb-4"
+        >
+          Show Listings
+        </button>
+        {showListingsError && (
+          <p className="text-red-500 mb-4 text-center">Error loading listings</p>
+        )}
+        {userListings.length > 0 ? (
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {userListings.map((listing) => (
+              <div
+                key={listing._id}
+                className="border p-4 rounded-lg flex justify-between items-center hover:shadow-md transition-shadow duration-300"
+              >
+                <Link to={`/listing/${listing._id}`} className="flex items-center space-x-4">
+                  <img
+                    src={listing.imageURL[0]}
+                    alt="Listing"
+                    className="w-16 h-16 rounded object-cover"
+                  />
+                  <h1 className="text-lg font-semibold">{listing.name}</h1>
+                </Link>
+                <div className="flex space-x-2">
+                  <button className="text-red-600 hover:underline">Delete</button>
+                  <button className="text-blue-600 hover:underline">Edit</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-600 text-center">No listings found.</p>
+        )}
+      </section>
     </div>
+  </main>
+</div>
+
   );
 }
 
