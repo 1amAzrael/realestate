@@ -135,6 +135,26 @@ function Profile() {
 
     }
 
+    const handleDeleteListing = async (id) => {
+      try {
+        const res = await fetch(`/api/listing/delete/${id}`, {
+          method: 'DELETE',
+        });
+        const data = await res.json();
+        if (data.success === false) {
+          console.log(data.message);
+          return;
+        }
+        // Update the state correctly using the setter function
+        setUserListings((prevListings) =>
+          prevListings.filter((listing) => listing._id !== id)
+        );
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    
+
 
   return (
     <div className="min-h-screen flex bg-gray-100">
@@ -282,7 +302,7 @@ function Profile() {
                   <h1 className="text-lg font-semibold">{listing.name}</h1>
                 </Link>
                 <div className="flex space-x-2">
-                  <button className="text-red-600 hover:underline">Delete</button>
+                  <button onClick={() => handleDeleteListing(listing._id)} className="text-red-600 hover:underline">Delete</button>
                   <button className="text-blue-600 hover:underline">Edit</button>
                 </div>
               </div>
