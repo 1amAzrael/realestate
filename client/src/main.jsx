@@ -5,6 +5,11 @@ import App from './App.jsx'
 import { persistor, store } from './redux/store.js';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
+import 'swiper/css'; // Base Swiper styles
+import 'swiper/css/navigation'; // Navigation module styles
+import 'swiper/css/autoplay'; // Autoplay module styles
+
+
 
 createRoot(document.getElementById('root')).render(
   <Provider store={store}>

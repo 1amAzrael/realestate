@@ -31,16 +31,21 @@ function Header() {
 
   return (
     <header className="bg-slate-200 shadow-md">
-      <div className="container mx-auto px-4 flex justify-between items-center h-16">
+      <div className="container mx-auto px-4 flex justify-between items-center h-20">
         {/* Left Section: Logo & Navigation */}
         <div className="flex items-center gap-6">
           <Link to="/">
-            <h1 className="font-bold text-xl">
+            <h1 className="font-bold text-2xl">
               <span className="text-red-600">Rent</span>
               <span className="text-blue-600">pal</span>
             </h1>
           </Link>
-          <ul className="hidden sm:flex gap-4 font-semibold text-sm">
+          
+        </div>
+
+        {/* Right Section: Search Bar & Profile/Sign In */}
+        <div className="flex items-center gap-4">
+        <ul className="hidden sm:flex gap-4 font-bold text-xl">
             <li>
               <Link to="/" className="hover:text-red-600">
                 Home
@@ -52,10 +57,6 @@ function Header() {
               </Link>
             </li>
           </ul>
-        </div>
-
-        {/* Right Section: Search Bar & Profile/Sign In */}
-        <div className="flex items-center gap-4">
           <form onSubmit={handleSubmit} className="flex items-center bg-slate-100 rounded-lg p-2">
             <input
               type="text"
@@ -78,9 +79,9 @@ function Header() {
                 className="rounded-full w-8 h-8 object-cover"
               />
             ) : (
-              <span className="font-semibold text-sm hover:text-red-600 cursor-pointer">
+              <button className="inline-block rounded-xl bg-blue-900 px-8 py-3 font-medium text-white transition hover:bg-opacity-90">
                 Sign In
-              </span>
+              </button>
             )}
           </Link>
         </div>
