@@ -5,14 +5,13 @@ import { useSelector } from 'react-redux';
 
 function CreateListing() {
   const navigate = useNavigate();
-  // State for listing details
+
+  // Clean initial state without duplicate keys
   const [listingData, setListingData] = useState({
     name: '',
     description: '',
-    price: '',
-    discountPrice: '',
     address: '',
-    type: 'rent',
+    type: '',
     bathrooms: '1',
     bedrooms: '1',
     price: '0',
@@ -31,24 +30,15 @@ function CreateListing() {
   const [loading, setLoading] = useState(false);
 
   const { currentUser } = useSelector((state) => state.user);
-  
 
-  // Handle changes for text/number inputs
+  // Simplified change handler using event destructuring
   const handleChange = (e) => {
-    if (e.target.id === 'sale' || e.target.id === 'rent') {
-      setListingData({ ...listingData, type: e.target.id });
-    } 
-    if(e.target.id === 'parking' || e.target.id === 'furnished' || e.target.id === 'offer') {
-      setListingData({ ...listingData, [e.target.id]: e.target.checked });
-    }
-    if(e.target.type === 'number' || e.target.type === 'text' || e.target.type === 'textarea') {
-      setListingData({ ...listingData, [e.target.id]: e.target.value });
-    }
-    
+    const { id, value, type, checked } = e.target;
+    setListingData((prevData) => ({
+      ...prevData,
+      [id]: type === 'checkbox' ? checked : value,
+    }));
   };
-
-  // Handle changes for checkboxes
- 
 
   // Upload images to Cloudinary when files are selected
   const handleFileChange = async (e) => {
@@ -60,11 +50,10 @@ function CreateListing() {
       const uploadPromises = filesArray.map((file) => {
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('upload_preset', 'my_unsigned_preset'); 
-        return axios.post(
-          `https://api.cloudinary.com/v1_1/azrael21/image/upload`, 
-          formData
-        ).then((res) => res.data.secure_url);
+        formData.append('upload_preset', 'my_unsigned_preset');
+        return axios
+          .post(`https://api.cloudinary.com/v1_1/azrael21/image/upload`, formData)
+          .then((res) => res.data.secure_url);
       });
 
       const urls = await Promise.all(uploadPromises);
@@ -80,7 +69,7 @@ function CreateListing() {
     try {
       setLoading(true);
       setError(false);
-  
+
       const res = await fetch('/api/listing/create', {
         method: 'POST',
         headers: {
@@ -88,11 +77,11 @@ function CreateListing() {
         },
         body: JSON.stringify({
           ...listingData,
-          imageURL: imageUrls,  // ✅ Include uploaded images
+          imageURL: imageUrls, // Include uploaded images
           userRef: currentUser._id,
         }),
       });
-  
+
       const data = await res.json();
       setLoading(false);
       if (data.success === false) {
@@ -105,7 +94,6 @@ function CreateListing() {
       setLoading(false);
     }
   };
-  
 
   return (
     <main className="min-h-screen bg-gray-100 flex items-center justify-center p-6">

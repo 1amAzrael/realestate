@@ -1,19 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useNavigate,useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 function UpdateListing() {
   const navigate = useNavigate();
   const params = useParams();
-  // State for listing details
   const [listingData, setListingData] = useState({
     name: '',
     description: '',
-    price: '',
-    discountPrice: '',
     address: '',
-    type: 'rent',
+    type: '',
     bathrooms: '1',
     bedrooms: '1',
     price: '0',
@@ -23,14 +20,13 @@ function UpdateListing() {
     furnished: false,
     imageURL: [],
   });
-
-  // State for image URLs returned from Cloudinary
+  
   const [imageUrls, setImageUrls] = useState([]);
-  // State for file selection (optional)
   const [files, setFiles] = useState([]);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Fetch listing data on mount
   useEffect(() => {
     const fetchListing = async () => {
       const listingId = params.listingId;
@@ -46,33 +42,22 @@ function UpdateListing() {
         console.error("Error fetching listing:", error);
       }
     };
-  
-    // Invoke the function
+
     fetchListing();
   }, [params.listingId]);
-  
 
   const { currentUser } = useSelector((state) => state.user);
-  
 
-  // Handle changes for text/number inputs
+  // Simplified change handler
   const handleChange = (e) => {
-    if (e.target.id === 'sale' || e.target.id === 'rent') {
-      setListingData({ ...listingData, type: e.target.id });
-    } 
-    if(e.target.id === 'parking' || e.target.id === 'furnished' || e.target.id === 'offer') {
-      setListingData({ ...listingData, [e.target.id]: e.target.checked });
-    }
-    if(e.target.type === 'number' || e.target.type === 'text' || e.target.type === 'textarea') {
-      setListingData({ ...listingData, [e.target.id]: e.target.value });
-    }
-    
+    const { id, value, type, checked } = e.target;
+    setListingData((prevData) => ({
+      ...prevData,
+      [id]: type === 'checkbox' ? checked : value,
+    }));
   };
 
-  // Handle changes for checkboxes
- 
-
-  // Upload images to Cloudinary when files are selected
+  // File change handler remains the same
   const handleFileChange = async (e) => {
     const selectedFiles = e.target.files;
     setFiles(selectedFiles);
@@ -83,10 +68,9 @@ function UpdateListing() {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', 'my_unsigned_preset'); 
-        return axios.post(
-          `https://api.cloudinary.com/v1_1/azrael21/image/upload`, 
-          formData
-        ).then((res) => res.data.secure_url);
+        return axios
+          .post(`https://api.cloudinary.com/v1_1/azrael21/image/upload`, formData)
+          .then((res) => res.data.secure_url);
       });
 
       const urls = await Promise.all(uploadPromises);
@@ -102,7 +86,7 @@ function UpdateListing() {
     try {
       setLoading(true);
       setError(false);
-  
+
       const res = await fetch(`/api/listing/update/${params.listingId}`, {
         method: 'POST',
         headers: {
@@ -110,11 +94,11 @@ function UpdateListing() {
         },
         body: JSON.stringify({
           ...listingData,
-          imageURL: imageUrls,  // ✅ Include uploaded images
+          imageURL: imageUrls, // Include uploaded images
           userRef: currentUser._id,
         }),
       });
-  
+
       const data = await res.json();
       setLoading(false);
       if (data.success === false) {
@@ -127,7 +111,6 @@ function UpdateListing() {
       setLoading(false);
     }
   };
-  
 
   return (
     <main className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
