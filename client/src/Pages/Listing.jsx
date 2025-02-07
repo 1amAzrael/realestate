@@ -8,16 +8,16 @@ import { useSelector } from 'react-redux';
 import Contatct from '../Component/Contatct';
 
 function Listing() {
-    const {currentUser} = useSelector((state) => state.user);
+  const { currentUser } = useSelector((state) => state.user);
   const { listingId } = useParams();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentSlide, setCurrentSlide] = useState(0); 
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [contact, setContact] = useState(false);
 
   const mainSliderRef = useRef(null);
-  
+
   useEffect(() => {
     const fetchListing = async () => {
       try {
@@ -39,6 +39,17 @@ function Listing() {
 
     fetchListing();
   }, [listingId]);
+
+  const handleBuyNow = () => {
+    // Simulate a delay to represent the payment processing
+    setTimeout(() => {
+      // Simulating payment success
+      alert('Payment Successful! Your order is being processed.');
+      
+      // Optionally redirect to a success page
+      window.location.href = '/';
+    }, 2000); // Simulate a 2-second delay for payment processing
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen text-gray-500">Loading...</div>;
@@ -106,12 +117,8 @@ function Listing() {
           </span>
           {currentUser && listing.userRef !== currentUser._id && !contact && (
             <button onClick={() => setContact(true)} className='mt-2 inline-block px-3 py-1 text-sm font-bold rounded ml-2 bg-purple-500'>Contact LandLord</button>
-
-          )
-              
-          }
+          )}
           {contact && <Contatct listing={listing} />}
-          
         </div>
       </div>
 
@@ -133,6 +140,14 @@ function Listing() {
             <p className="flex items-center text-xl"><FaBath className="mr-2 text-blue-300" /> Bathrooms: <span className="ml-2">{listing.bathrooms}</span></p>
             <p className="flex items-center text-xl"><FaCouch className="mr-2 text-green-400" /> Furnished: <span className="ml-2">{listing.furnished ? 'Yes' : 'No'}</span></p>
             <p className="flex items-center text-xl"><FaParking className="mr-2 text-gray-300" /> Parking: <span className="ml-2">{listing.parking ? 'Yes' : 'No'}</span></p>
+            {listing.type === 'sale' && (
+              <button 
+                onClick={handleBuyNow} 
+                className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-green-600 rounded-lg hover:bg-green-500"
+              >
+                Buy Now
+              </button>
+            )}
           </div>
         </div>
 
@@ -140,10 +155,8 @@ function Listing() {
         <div className="mt-6 border-t pt-4 text-gray-400 text-sm">
           <p>Listed on: {new Date(listing.createdAt).toLocaleDateString()} &middot; Last updated: {new Date(listing.updatedAt).toLocaleDateString()}</p>
         </div>
-        
       </div>
     </div>
-
   );
 }
 
