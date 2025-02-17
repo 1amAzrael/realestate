@@ -11,6 +11,7 @@ import CreateListing from './Pages/createListing'
 import UpdateListing from './Pages/updateListing'
 import Listing from './Pages/Listing'
 import Search from './Pages/Search'
+import HrPage from './Pages/HRpage'
 
 function App() {
   return (
@@ -28,6 +29,8 @@ function App() {
       <Route path="/about" element={<About />} />
       <Route path="/listing/:listingId" element={<Listing />} />
       <Route path="/search" element={<Search />} />
+      <Route path="/hr" element={<HrPage />} />
+
        
       
     </Routes>

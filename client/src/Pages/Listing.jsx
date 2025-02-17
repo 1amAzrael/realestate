@@ -51,6 +51,17 @@ function Listing() {
     }, 2000); // Simulate a 2-second delay for payment processing
   };
 
+  // New Book Now handler
+  const handleBookNow = () => {
+    const needsHR = window.confirm('Do you require human resource assistance?');
+    if (needsHR) {
+      window.location.href = '/hr'; // Redirect to HR page
+    } else {
+      alert('Booking confirmed successfully! Redirecting to home page.');
+      window.location.href = '/'; // Redirect to home page
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen text-gray-500">Loading...</div>;
   }
@@ -146,6 +157,14 @@ function Listing() {
                 className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-green-600 rounded-lg hover:bg-green-500"
               >
                 Buy Now
+              </button>
+            )}
+            {listing.type === 'rent' && (
+              <button 
+                onClick={handleBookNow}
+                className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-500"
+              >
+                Book Now
               </button>
             )}
           </div>
