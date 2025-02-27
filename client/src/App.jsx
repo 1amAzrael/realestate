@@ -12,6 +12,8 @@ import UpdateListing from './Pages/updateListing'
 import Listing from './Pages/Listing'
 import Search from './Pages/Search'
 import HrPage from './Pages/HRpage'
+import AdminPortal from './Pages/AdminPortal'
+import AdminRoute from './Component/AdminRoute'
 
 function App() {
   return (
@@ -25,11 +27,16 @@ function App() {
        <Route path="/profile" element={<Profile />} />
        <Route path="/create-listing" element={<CreateListing />} />
        <Route path="/update-listing/:listingId" element={<UpdateListing />} />
+       
       </Route>
       <Route path="/about" element={<About />} />
       <Route path="/listing/:listingId" element={<Listing />} />
       <Route path="/search" element={<Search />} />
       <Route path="/hr" element={<HrPage />} />
+      <Route element={<AdminRoute />}>
+  <Route path="/admin" element={<AdminPortal />} />
+</Route>
+
 
        
       
