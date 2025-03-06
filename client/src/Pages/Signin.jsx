@@ -15,40 +15,37 @@ function Signin() {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      dispatch(signInStart());
-      const res = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      const data = await res.json();
-  
-      if (data.success === false) {
-        dispatch(signInFailure(data.message));
-        return;
-      }
-  
-      // Save token to localStorage
-      localStorage.setItem('token', data.token);
-      dispatch(signInSuccess(data));
-  
-      // Check for admin email and pw directly in the frontend
-      if (formData.email === 'adminonly@gmail.com' && formData.password === 'madebykrisham') {
-        localStorage.setItem('adminToken', data.token); // Save admin token
-        navigate('/admin'); // Redirect to admin portal
-      } else {
-        navigate('/profile'); // Regular user route
-      }
-    } catch (error) {
-      dispatch(signInFailure(error.message));
+// src/pages/Signin.jsx
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    dispatch(signInStart());
+    const res = await fetch('/api/auth/signin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+    const data = await res.json();
+
+    if (data.success === false) {
+      dispatch(signInFailure(data.message));
+      return;
     }
-  };
-  
+
+    dispatch(signInSuccess(data));
+
+    // Redirect admins to the admin dashboard
+    if (data.isAdmin) {
+      navigate('/admin-dashboard');
+    } else {
+      navigate('/profile');
+    }
+  } catch (error) {
+    dispatch(signInFailure(error.message));
+  }
+};
 
   return (
     <div className="flex items-center justify-center min-h-screen">

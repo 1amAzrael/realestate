@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import Slider from 'react-slick';
-import { FaBed, FaBath, FaParking, FaCouch, FaTag } from 'react-icons/fa';
+import { FaBed, FaBath, FaParking, FaCouch, FaTag, FaStar } from 'react-icons/fa';
 import "slick-carousel/slick/slick.css"; 
 import "slick-carousel/slick/slick-theme.css";
 import { useSelector } from 'react-redux';
@@ -41,24 +41,41 @@ function Listing() {
   }, [listingId]);
 
   const handleBuyNow = () => {
-    // Simulate a delay to represent the payment processing
     setTimeout(() => {
-      // Simulating payment success
       alert('Payment Successful! Your order is being processed.');
-      
-      // Optionally redirect to a success page
       window.location.href = '/';
-    }, 2000); // Simulate a 2-second delay for payment processing
+    }, 2000);
   };
 
-  // New Book Now handler
   const handleBookNow = () => {
     const needsHR = window.confirm('Do you require human resource assistance?');
     if (needsHR) {
-      window.location.href = '/hr'; // Redirect to HR page
+      window.location.href = '/hr';
     } else {
       alert('Booking confirmed successfully! Redirecting to home page.');
-      window.location.href = '/'; // Redirect to home page
+      window.location.href = '/';
+    }
+  };
+
+  const handleRate = async (newRating) => {
+    try {
+      const response = await fetch(`/api/listing/rate/${listingId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: currentUser._id, rating: newRating }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setListing((prevListing) => ({
+          ...prevListing,
+          ratings: [...prevListing.ratings, { userId: currentUser._id, rating: newRating }],
+          averageRating: data.averageRating,
+        }));
+      }
+    } catch (error) {
+      console.error('Error submitting rating:', error);
     }
   };
 
@@ -151,6 +168,38 @@ function Listing() {
             <p className="flex items-center text-xl"><FaBath className="mr-2 text-blue-300" /> Bathrooms: <span className="ml-2">{listing.bathrooms}</span></p>
             <p className="flex items-center text-xl"><FaCouch className="mr-2 text-green-400" /> Furnished: <span className="ml-2">{listing.furnished ? 'Yes' : 'No'}</span></p>
             <p className="flex items-center text-xl"><FaParking className="mr-2 text-gray-300" /> Parking: <span className="ml-2">{listing.parking ? 'Yes' : 'No'}</span></p>
+
+            {/* Rating System */}
+            {currentUser && (
+              <div className="mt-4">
+                <h3 className="text-xl font-bold mb-2">Rate this listing:</h3>
+                <div className="flex items-center space-x-2">
+                  {[...Array(5)].map((_, index) => {
+                    const ratingValue = index + 1;
+                    return (
+                      <label key={index}>
+                        <input
+                          type="radio"
+                          name="rating"
+                          value={ratingValue}
+                          onClick={() => handleRate(ratingValue)}
+                          className="hidden"
+                        />
+                        <FaStar
+                          className="cursor-pointer"
+                          color={ratingValue <= (listing.ratings.find((r) => r.userId === currentUser._id)?.rating || 0) ? '#ffc107' : '#e4e5e9'}
+                          size={24}
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-lg font-bold mt-2">
+                  Average Rating: {listing.averageRating || 'No ratings yet'}
+                </p>
+              </div>
+            )}
+
             {listing.type === 'sale' && (
               <button 
                 onClick={handleBuyNow} 

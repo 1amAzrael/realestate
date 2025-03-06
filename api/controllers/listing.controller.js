@@ -95,3 +95,42 @@ export const getListings = async (req, res, next) => {
         next(error);
     }
 }
+
+export const rateListing = async (req, res, next) => {
+    const { listingId } = req.params;
+    const { userId, rating } = req.body;
+
+    if (!userId || !rating || rating < 1 || rating > 5) {
+        return next(errorHandler(400, "Invalid rating data."));
+    }
+
+    try {
+        const listing = await Listing.findById(listingId);
+        if (!listing) return next(errorHandler(404, "Listing not found."));
+
+        // Check if the user has already rated this listing
+        const existingRating = listing.ratings.find((r) => r.userId === userId);
+        if (existingRating) {
+            existingRating.rating = rating; // Update existing rating
+        } else {
+            listing.ratings.push({ userId, rating }); // Add new rating
+        }
+
+        // Calculate the average rating
+        const totalRatings = listing.ratings.reduce((sum, r) => sum + r.rating, 0);
+        listing.averageRating = (totalRatings / listing.ratings.length).toFixed(1);
+
+        await listing.save();
+        res.status(200).json({ success: true, averageRating: listing.averageRating });
+    } catch (error) {
+        next(error);
+    }
+};
+export const getAllListings = async (req, res, next) => {
+    try {
+      const listings = await Listing.find({});
+      res.status(200).json(listings);
+    } catch (error) {
+      next(error);
+    }
+  };

@@ -12,8 +12,8 @@ import UpdateListing from './Pages/updateListing'
 import Listing from './Pages/Listing'
 import Search from './Pages/Search'
 import HrPage from './Pages/HRpage'
-import AdminPortal from './Pages/AdminPortal'
-import AdminRoute from './Component/AdminRoute'
+
+import AdminDashboard from './Pages/AdminDashboard'
 
 function App() {
   return (
@@ -33,9 +33,9 @@ function App() {
       <Route path="/listing/:listingId" element={<Listing />} />
       <Route path="/search" element={<Search />} />
       <Route path="/hr" element={<HrPage />} />
-      <Route element={<AdminRoute />}>
-  <Route path="/admin" element={<AdminPortal />} />
-</Route>
+      
+      <Route path="/admin-dashboard" element={<AdminDashboard />} />
+
 
 
        

@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
 
+
+
+
 const listingSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -53,9 +56,18 @@ const listingSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-},{timestamps: true});
+    ratings: [
+        {
+            userId: { type: String, required: true },
+            rating: { type: Number, required: true, min: 1, max: 5 },
+        },
+    ],
+    averageRating: { // Add this field
+        type: Number,
+        default: 0,
+    },
+}, { timestamps: true });
 
 const Listing = mongoose.model("Listing", listingSchema);
 
 export default Listing;
-    
