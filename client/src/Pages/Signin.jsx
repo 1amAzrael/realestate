@@ -40,7 +40,7 @@ const handleSubmit = async (e) => {
     if (data.isAdmin) {
       navigate('/admin-dashboard');
     } else {
-      navigate('/profile');
+      navigate('/');
     }
   } catch (error) {
     dispatch(signInFailure(error.message));

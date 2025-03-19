@@ -4,10 +4,11 @@ import userRouter from './routes/user.route.js';
 import authRouter from './routes/auth.route.js';
 import listingRouter from './routes/listing.route.js';
 import adminRoutes from './routes/admin.route.js';
+import reviewRoutes from './routes/review.route.js';
+import bookingRoutes from './routes/booking.route.js'; // Added booking routes
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-
 
 dotenv.config();
 
@@ -25,6 +26,8 @@ app.use('/api/user', userRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/listing', listingRouter);
 app.use('/api/admin', adminRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/booking', bookingRoutes); // Mount booking routes
 
 // Error handling middleware
 app.use((err, req, res, next) => {

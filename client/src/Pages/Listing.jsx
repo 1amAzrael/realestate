@@ -1,22 +1,37 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Slider from 'react-slick';
-import { FaBed, FaBath, FaParking, FaCouch, FaTag, FaStar } from 'react-icons/fa';
+import { FaBed, FaBath, FaParking, FaCouch, FaTag, FaStar, FaRegStar, FaUser, FaComment } from 'react-icons/fa';
 import "slick-carousel/slick/slick.css"; 
 import "slick-carousel/slick/slick-theme.css";
 import { useSelector } from 'react-redux';
-import Contatct from '../Component/Contatct';
 
 function Listing() {
   const { currentUser } = useSelector((state) => state.user);
   const { listingId } = useParams();
+  const navigate = useNavigate();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [contact, setContact] = useState(false);
+  const [comment, setComment] = useState('');
+  const [reviews, setReviews] = useState([]);
+  const [reviewLoading, setReviewLoading] = useState(true);
+  const [selectedRating, setSelectedRating] = useState(0);
 
   const mainSliderRef = useRef(null);
+
+  // Function to calculate the average rating
+  const calculateAverageRating = (reviews) => {
+    if (reviews.length === 0) return 0;
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    return totalRating / reviews.length;
+  };
+
+  const averageRating = calculateAverageRating(reviews);
+
+  // Check if current user is the owner of the listing
+  const isOwner = currentUser && listing?.userRef === currentUser._id;
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -37,7 +52,26 @@ function Listing() {
       }
     };
 
+    const fetchReviews = async () => {
+      try {
+        setReviewLoading(true);
+        const res = await fetch(`/api/reviews/${listingId}`);
+        const data = await res.json();
+        if (data.success === false) {
+          console.error('Failed to load reviews');
+          setReviewLoading(false);
+          return;
+        }
+        setReviews(data);
+        setReviewLoading(false);
+      } catch (err) {
+        console.error('Error fetching reviews:', err);
+        setReviewLoading(false);
+      }
+    };
+
     fetchListing();
+    fetchReviews();
   }, [listingId]);
 
   const handleBuyNow = () => {
@@ -58,24 +92,68 @@ function Listing() {
   };
 
   const handleRate = async (newRating) => {
+    setSelectedRating(newRating);
+  };
+
+  const handleContactLandlord = () => {
+    navigate(`/contact-landlord/${listingId}`);
+  };
+
+  const handleCommentChange = (e) => {
+    setComment(e.target.value);
+  };
+
+  const submitReview = async () => {
+    if (!currentUser) {
+      alert('Please login to leave a review');
+      return;
+    }
+
+    if (selectedRating === 0) {
+      alert('Please select a rating');
+      return;
+    }
+
     try {
-      const response = await fetch(`/api/listing/rate/${listingId}`, {
+      const response = await fetch('/api/reviews/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: currentUser._id, rating: newRating }),
+        body: JSON.stringify({
+          listingId,
+          userId: currentUser._id,
+          username: currentUser.username,
+          rating: selectedRating,
+          comment,
+          createdAt: new Date(),
+        }),
       });
+
       const data = await response.json();
+      
       if (data.success) {
-        setListing((prevListing) => ({
-          ...prevListing,
-          ratings: [...prevListing.ratings, { userId: currentUser._id, rating: newRating }],
-          averageRating: data.averageRating,
-        }));
+        // Add the new review to the reviews array
+        setReviews([...reviews, {
+          _id: data.reviewId,
+          userId: currentUser._id,
+          username: currentUser.username,
+          rating: selectedRating,
+          comment,
+          createdAt: new Date(),
+        }]);
+        
+        // Reset the form
+        setComment('');
+        setSelectedRating(0);
+        
+        alert('Review submitted successfully!');
+      } else {
+        alert(data.message || 'Failed to submit review');
       }
     } catch (error) {
-      console.error('Error submitting rating:', error);
+      console.error('Error submitting review:', error);
+      alert('An error occurred while submitting your review');
     }
   };
 
@@ -108,6 +186,11 @@ function Listing() {
   const handleThumbnailClick = (index) => {
     setCurrentSlide(index);
     mainSliderRef.current.slickGoTo(index);
+  };
+
+  const formatDate = (dateString) => {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   return (
@@ -143,10 +226,19 @@ function Listing() {
           <span className={`mt-2 inline-block px-3 py-1 text-sm font-bold uppercase rounded ${listing.type.toLowerCase() === 'sale' ? 'bg-green-500' : 'bg-blue-500'}`}>
             {listing.type === 'sale' ? 'For Sale' : 'For Rent'}
           </span>
-          {currentUser && listing.userRef !== currentUser._id && !contact && (
-            <button onClick={() => setContact(true)} className='mt-2 inline-block px-3 py-1 text-sm font-bold rounded ml-2 bg-purple-500'>Contact LandLord</button>
+          {currentUser && !isOwner && (
+            <button 
+              onClick={handleContactLandlord} 
+              className='mt-2 inline-block px-3 py-1 text-sm font-bold rounded ml-2 bg-purple-500 hover:bg-purple-600 transition-colors duration-300'
+            >
+              Contact Landlord
+            </button>
           )}
-          {contact && <Contatct listing={listing} />}
+          {isOwner && (
+            <span className="mt-2 inline-block px-3 py-1 text-sm font-bold rounded ml-2 bg-orange-500">
+              Your Property
+            </span>
+          )}
         </div>
       </div>
 
@@ -169,15 +261,70 @@ function Listing() {
             <p className="flex items-center text-xl"><FaCouch className="mr-2 text-green-400" /> Furnished: <span className="ml-2">{listing.furnished ? 'Yes' : 'No'}</span></p>
             <p className="flex items-center text-xl"><FaParking className="mr-2 text-gray-300" /> Parking: <span className="ml-2">{listing.parking ? 'Yes' : 'No'}</span></p>
 
-            {/* Rating System */}
-            {currentUser && (
-              <div className="mt-4">
-                <h3 className="text-xl font-bold mb-2">Rate this listing:</h3>
-                <div className="flex items-center space-x-2">
+            <div className="flex items-center mt-4">
+              <div className="flex">
+                {[...Array(5)].map((_, index) => {
+                  const ratingValue = index + 1;
+                  return (
+                    <FaStar
+                      key={index}
+                      className="text-yellow-400"
+                      size={24}
+                      style={{ opacity: ratingValue <= averageRating ? 1 : 0.3 }}
+                    />
+                  );
+                })}
+              </div>
+              <p className="ml-2 text-lg">
+                <span className="font-bold">{averageRating ? averageRating.toFixed(1) : '0'}</span>
+                <span className="text-gray-400 ml-1">
+                  ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                </span>
+              </p>
+            </div>
+
+            {/* Only show Buy/Book buttons if not the owner */}
+            {!isOwner && (
+              <>
+                {listing.type === 'sale' && (
+                <button 
+                onClick={() => navigate(`/book/${listing._id}`)}
+                className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-500"
+              >
+                    Buy Now
+                  </button>
+                )}
+                {listing.type === 'rent' && (
+                  <button 
+                    onClick={() => navigate(`/book/${listing._id}`)}
+                    className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-500"
+                  >
+                    Book Now
+                  </button>
+                )}
+              </>
+            )}
+            
+            {/* Edit Property button removed for landlords */}
+          </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-12">
+          <h2 className="text-3xl font-bold mb-6 border-b border-gray-700 pb-2">Reviews & Ratings</h2>
+          
+          {/* Add Review Form - Only show if user is logged in, not the owner, and can leave reviews */}
+          {currentUser && !isOwner && (
+            <div className="bg-gray-700 p-6 rounded-lg mb-8">
+              <h3 className="text-xl font-semibold mb-4">Leave a Review</h3>
+              
+              <div className="mb-4">
+                <p className="mb-2">Your Rating:</p>
+                <div className="flex">
                   {[...Array(5)].map((_, index) => {
                     const ratingValue = index + 1;
                     return (
-                      <label key={index}>
+                      <label key={index} className="cursor-pointer">
                         <input
                           type="radio"
                           name="rating"
@@ -185,36 +332,70 @@ function Listing() {
                           onClick={() => handleRate(ratingValue)}
                           className="hidden"
                         />
-                        <FaStar
-                          className="cursor-pointer"
-                          color={ratingValue <= (listing.ratings.find((r) => r.userId === currentUser._id)?.rating || 0) ? '#ffc107' : '#e4e5e9'}
-                          size={24}
-                        />
+                        {ratingValue <= selectedRating ? (
+                          <FaStar className="text-yellow-400 mr-1" size={28} />
+                        ) : (
+                          <FaRegStar className="text-yellow-400 mr-1" size={28} />
+                        )}
                       </label>
                     );
                   })}
                 </div>
-                <p className="text-lg font-bold mt-2">
-                  Average Rating: {listing.averageRating || 'No ratings yet'}
-                </p>
               </div>
-            )}
-
-            {listing.type === 'sale' && (
-              <button 
-                onClick={handleBuyNow} 
-                className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-green-600 rounded-lg hover:bg-green-500"
+              
+              <div className="mb-4">
+                <label className="block mb-2">Your Review:</label>
+                <textarea
+                  value={comment}
+                  onChange={handleCommentChange}
+                  rows="4"
+                  className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  placeholder="Share your experience with this property..."
+                ></textarea>
+              </div>
+              
+              <button
+                onClick={submitReview}
+                className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-500 transition-colors"
+                disabled={!selectedRating}
               >
-                Buy Now
+                Submit Review
               </button>
-            )}
-            {listing.type === 'rent' && (
-              <button 
-                onClick={handleBookNow}
-                className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-500"
-              >
-                Book Now
-              </button>
+            </div>
+          )}
+          
+          {/* Reviews List - Visible to everyone */}
+          <div className="space-y-6">
+            {reviewLoading ? (
+              <p className="text-center text-gray-400">Loading reviews...</p>
+            ) : reviews.length > 0 ? (
+              reviews.map((review) => (
+                <div key={review._id} className="bg-gray-700/50 p-5 rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center">
+                      <div className="bg-gray-600 h-10 w-10 rounded-full flex items-center justify-center">
+                        <FaUser className="text-gray-300" />
+                      </div>
+                      <div className="ml-3">
+                        <h4 className="font-semibold">{review.username}</h4>
+                        <div className="flex mt-1">
+                          {[...Array(5)].map((_, i) => (
+                            <FaStar 
+                              key={i} 
+                              size={14} 
+                              className={i < review.rating ? "text-yellow-400" : "text-gray-500"} 
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-sm text-gray-400">{formatDate(review.createdAt)}</span>
+                  </div>
+                  <p className="mt-3 text-gray-300">{review.comment}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-gray-400">No reviews yet. {!isOwner && "Be the first to review this property!"}</p>
             )}
           </div>
         </div>

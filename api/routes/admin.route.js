@@ -1,6 +1,6 @@
 // routes/admin.route.js
 import express from 'express';
-import { deleteUser, deleteListing } from '../controllers/admin.controller.js';
+import { deleteUser, deleteListing ,editUser, editListing } from '../controllers/admin.controller.js';
 import { verifyToken } from '../utils/verifyUser.js';
 
 const router = express.Router();
@@ -10,5 +10,8 @@ router.delete('/delete-user/:id', verifyToken, deleteUser);
 
 // Delete a listing
 router.delete('/delete-listing/:id', verifyToken, deleteListing);
+
+router.put("/edit-user/:id", verifyToken, editUser);
+router.put("/edit-listing/:id", verifyToken, editListing);
 
 export default router;

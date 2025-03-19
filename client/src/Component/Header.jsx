@@ -56,6 +56,11 @@ function Header() {
                 About
               </Link>
             </li>
+            <li>
+              <Link to="/search" className="hover:text-red-600">
+                Room
+              </Link>
+            </li>
           </ul>
           <form onSubmit={handleSubmit} className="flex items-center bg-slate-100 rounded-lg p-2">
             <input
