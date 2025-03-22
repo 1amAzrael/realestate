@@ -3,6 +3,7 @@ import Listing from "../models/listing.model.js";
 import { errorHandler } from "../utils/error.js";
 
 // Edit a user (Admin only)
+
 export const editUser = async (req, res, next) => {
   if (!req.user.isAdmin) {
     return next(errorHandler(403, "You are not authorized to perform this action."));

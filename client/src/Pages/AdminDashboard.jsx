@@ -1,20 +1,42 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import Modal from "../Component/Modal"; // Import the Modal component
+import Modal from "../Component/Modal";
+import ManageUsers from "../Component/ManageUsers";
+import ManageListings from "../Component/ManageListings";
+import ManageWorkers from "../Component/ManageWorkers";
+import EditUserModal from "../Component/EditUserModal";
+import EditListingModal from "../Component/EditListingModal";
+import ViewListingModal from "../Component/ViewListingModal";
+import AddWorkerModal from "../Component/AddWorkerModal";
+import EditWorkerModal from "../Component/EditWorkerModal";
 
 export default function AdminDashboard() {
   const { currentUser } = useSelector((state) => state.user);
   const [users, setUsers] = useState([]);
   const [listings, setListings] = useState([]);
+  const [workers, setWorkers] = useState([]);
+  const [shiftingRequests, setShiftingRequests] = useState([]);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("users");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [isEditListingModalOpen, setIsEditListingModalOpen] = useState(false);
   const [isViewListingModalOpen, setIsViewListingModalOpen] = useState(false);
+  const [isAddWorkerModalOpen, setIsAddWorkerModalOpen] = useState(false);
+  const [isEditWorkerModalOpen, setIsEditWorkerModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedListing, setSelectedListing] = useState(null);
+  const [selectedWorker, setSelectedWorker] = useState(null);
+  const [workerData, setWorkerData] = useState({
+    name: "",
+    experience: "",
+    rate: "",
+    specialties: "",
+    availability: "",
+    rating: 0,
+  });
+  const [processingRequestIds, setProcessingRequestIds] = useState([]);
   const navigate = useNavigate();
 
   // Fetch all users
@@ -62,29 +84,172 @@ export default function AdminDashboard() {
     fetchListings();
   }, [currentUser]);
 
-  // Delete a user
-  const handleDeleteUser = async (userId) => {
+  // Fetch all Workers
+  useEffect(() => {
+    const fetchWorkers = async () => {
+      try {
+        const res = await fetch("/api/worker/all", {
+          headers: {
+            Authorization: `Bearer ${currentUser?.access_token}`,
+          },
+        });
+        if (!res.ok) {
+          throw new Error("Failed to fetch workers");
+        }
+        const data = await res.json();
+        setWorkers(data.workers || []);
+      } catch (error) {
+        setError(error.message);
+        console.error(error);
+      }
+    };
+
+    fetchWorkers();
+  }, [currentUser]);
+
+  // Fetch all shifting requests
+  useEffect(() => {
+    const fetchShiftingRequests = async () => {
+      try {
+        const res = await fetch("/api/shiftingRequest/all", {
+          headers: {
+            Authorization: `Bearer ${currentUser?.access_token}`,
+          },
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to fetch shifting requests");
+        }
+        setShiftingRequests(data.shiftingRequests);
+      } catch (error) {
+        setError(error.message);
+        console.error("Fetch Shifting Requests Error:", error);
+      }
+    };
+    fetchShiftingRequests();
+  }, [currentUser]);
+
+  // Find worker details by workerId
+  const getWorkerDetails = (workerId) => {
+    return workers.find(worker => worker._id === workerId) || null;
+  };
+
+  const handleAddWorker = async (e) => {
+    e.preventDefault();
     try {
-      const res = await fetch(`/api/admin/delete-user/${userId}`, {
-        method: "DELETE",
+      const res = await fetch("/api/worker/add", {
+        method: "POST",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${currentUser?.access_token}`,
         },
+        body: JSON.stringify(workerData),
       });
       if (!res.ok) {
-        throw new Error("Failed to delete user");
+        throw new Error("Failed to add worker");
       }
-      setUsers((prevUsers) => prevUsers.filter((user) => user._id !== userId));
+      const data = await res.json();
+      setWorkers((prevWorkers) => [...prevWorkers, data.worker]);
+      setIsAddWorkerModalOpen(false);
+      setWorkerData({
+        name: "",
+        experience: "",
+        rate: "",
+        specialties: "",
+        availability: "",
+        rating: 0,
+      });
     } catch (error) {
       setError(error.message);
       console.error(error);
     }
   };
 
-  // Delete a listing
+  const handleEditWorker = async (workerId, updatedData) => {
+    try {
+      const res = await fetch(`/api/worker/update/${workerId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentUser?.access_token}`,
+        },
+        body: JSON.stringify(updatedData),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update worker");
+      }
+      const data = await res.json();
+      setWorkers((prevWorkers) =>
+        prevWorkers.map((worker) =>
+          worker._id === workerId ? data.worker : worker
+        )
+      );
+      setIsEditWorkerModalOpen(false);
+    } catch (error) {
+      setError(error.message);
+      console.error(error);
+    }
+  };
+
+  const handleDeleteWorker = async (workerId) => {
+    try {
+      const res = await fetch(`/api/worker/delete/${workerId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${currentUser?.access_token}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to delete worker");
+      }
+      setWorkers((prevWorkers) =>
+        prevWorkers.filter((worker) => worker._id !== workerId)
+      );
+    } catch (error) {
+      setError(error.message);
+      console.error(error);
+    }
+  };
+
+  const handleUpdateRequestStatus = async (requestId, status) => {
+    setError(null);
+    // Add the request ID to processing list to show loading state
+    setProcessingRequestIds(prev => [...prev, requestId]);
+    
+    try {
+      const res = await fetch(`/api/shiftingRequest/update/${requestId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentUser?.access_token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update shifting request status");
+      }
+      
+      // Update the request in the state
+      setShiftingRequests((prevRequests) =>
+        prevRequests.map((request) =>
+          request._id === requestId ? { ...request, status, statusUpdated: true } : request
+        )
+      );
+      
+      // Remove from processing list
+      setProcessingRequestIds(prev => prev.filter(id => id !== requestId));
+    } catch (error) {
+      setError(error.message);
+      console.error("Error updating shifting request status:", error);
+      // Remove from processing list in case of error
+      setProcessingRequestIds(prev => prev.filter(id => id !== requestId));
+    }
+  };
+
   const handleDeleteListing = async (listingId) => {
     try {
-      const res = await fetch(`/api/admin/delete-listing/${listingId}`, {
+      const res = await fetch(`/api/listing/delete/${listingId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${currentUser?.access_token}`,
@@ -102,7 +267,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Edit a user
   const handleEditUser = async (userId, updatedData) => {
     try {
       const res = await fetch(`/api/admin/edit-user/${userId}`, {
@@ -117,9 +281,13 @@ export default function AdminDashboard() {
         throw new Error("Failed to update user");
       }
       const data = await res.json();
+      console.log("Updated User Data:", data); // Log the response
+  
+      // Update the state with the new user data
       setUsers((prevUsers) =>
         prevUsers.map((user) => (user._id === userId ? data : user))
       );
+  
       setIsEditUserModalOpen(false);
     } catch (error) {
       setError(error.message);
@@ -127,29 +295,57 @@ export default function AdminDashboard() {
     }
   };
 
-  // Edit a listing
-  const handleEditListing = async (listingId, updatedData) => {
+    // Handle editing a listing
+    const handleEditListing = async (listingId, updatedData) => {
+      try {
+        const res = await fetch(`/api/admin/edit-listing/${listingId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${currentUser?.access_token}`,
+          },
+          body: JSON.stringify(updatedData),
+        });
+        if (!res.ok) {
+          throw new Error("Failed to update listing");
+        }
+        const data = await res.json();
+        console.log("Updated Listing Data:", data); // Log the response
+  
+        // Update the state with the new listing data
+        setListings((prevListings) =>
+          prevListings.map((listing) => (listing._id === listingId ? data : listing))
+        );
+  
+        setIsEditListingModalOpen(false);
+      } catch (error) {
+        setError(error.message);
+        console.error(error);
+      }
+    };
+
+  const handleDeleteUser = async (userId) => {
     try {
-      const res = await fetch(`/api/admin/edit-listing/${listingId}`, {
-        method: "PUT",
+      const res = await fetch(`/api/user/delete/${userId}`, {
+        method: "DELETE",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${currentUser?.access_token}`,
         },
-        body: JSON.stringify(updatedData),
       });
       if (!res.ok) {
-        throw new Error("Failed to update listing");
+        throw new Error("Failed to delete user");
       }
-      const data = await res.json();
-      setListings((prevListings) =>
-        prevListings.map((listing) => (listing._id === listingId ? data : listing))
+      setUsers((prevUsers) =>
+        prevUsers.filter((user) => user._id !== userId)
       );
-      setIsEditListingModalOpen(false);
     } catch (error) {
       setError(error.message);
       console.error(error);
     }
+  };
+
+  const handleInputChange = (e) => {
+    setWorkerData({ ...workerData, [e.target.name]: e.target.value });
   };
 
   // Navigation items for sidebar
@@ -157,41 +353,62 @@ export default function AdminDashboard() {
     { id: "dashboard", label: "Dashboard", icon: "📊" },
     { id: "users", label: "Manage Users", icon: "👥" },
     { id: "listings", label: "Manage Listings", icon: "🏠" },
-    { id: "settings", label: "Settings", icon: "⚙️" },
+    { id: "workers", label: "Manage Workers", icon: "👷" },
+    { id: "shifting-requests", label: "Shifting Requests", icon: "📦" },
   ];
 
-  // Get the first letter of a string safely
-  const getInitial = (str) => {
-    if (!str) return "U";
-    return str.charAt(0).toUpperCase();
+  // Status button renderer with conditional display
+  const renderStatusButton = (request, status, colorClass) => {
+    // If status is already the current one or the request is being processed, don't show other buttons
+    if (request.statusUpdated || request.status === status || processingRequestIds.includes(request._id)) {
+      if (request.status === status) {
+        return (
+          <button
+            className={`${colorClass} text-white px-4 py-2 rounded-lg ring-2 ring-offset-2 cursor-default`}
+          >
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </button>
+        );
+      }
+      return null;
+    }
+
+    return (
+      <button
+        onClick={() => handleUpdateRequestStatus(request._id, status)}
+        className={`${colorClass} text-white px-4 py-2 rounded-lg hover:opacity-90 transition-colors`}
+      >
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </button>
+    );
   };
 
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div 
+      <div
         className={`bg-indigo-800 text-white transition-all duration-300 ${
           sidebarOpen ? "w-64" : "w-20"
         }`}
       >
         <div className="p-4 flex items-center justify-between">
           {sidebarOpen && <h1 className="text-xl font-bold">Admin Portal</h1>}
-          <button 
+          <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded-lg bg-indigo-700 hover:bg-indigo-600"
           >
             {sidebarOpen ? "◀" : "▶"}
           </button>
         </div>
-        
+
         <div className="mt-8">
           {navItems.map((item) => (
             <div
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={`flex items-center px-4 py-3 cursor-pointer transition-colors ${
-                activeTab === item.id 
-                  ? "bg-indigo-700" 
+                activeTab === item.id
+                  ? "bg-indigo-700"
                   : "hover:bg-indigo-700"
               }`}
             >
@@ -202,11 +419,11 @@ export default function AdminDashboard() {
             </div>
           ))}
         </div>
-        
+
         <div className="absolute bottom-0 w-full p-4">
           <div className={`flex items-center ${!sidebarOpen && "justify-center"}`}>
             <div className="bg-indigo-600 rounded-full w-10 h-10 flex items-center justify-center mr-3">
-              {getInitial(currentUser?.username)}
+              {currentUser?.username?.charAt(0).toUpperCase() || "A"}
             </div>
             {sidebarOpen && (
               <div>
@@ -217,37 +434,42 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-      
+
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
         <header className="bg-white shadow-sm">
           <div className="max-w-7xl mx-auto py-4 px-4 flex justify-between items-center">
             <h1 className="text-2xl font-semibold text-gray-800">
-              {navItems.find(item => item.id === activeTab)?.label || "Dashboard"}
+              {navItems.find((item) => item.id === activeTab)?.label || "Dashboard"}
             </h1>
-            
+{/* 
             <div className="flex items-center space-x-4">
-              <button className="bg-gray-200 p-2 rounded-full hover:bg-gray-300">
-                🔔
-              </button>
-              <button 
-                onClick={() => navigate('/')}
+              <button
+                onClick={() => navigate("/")}
                 className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
               >
                 Back to Home
               </button>
-            </div>
+            </div> */}
           </div>
         </header>
-        
+
         <main className="max-w-7xl mx-auto py-6 px-4">
           {/* Error Message */}
           {error && (
             <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow">
               <div className="flex">
                 <div className="py-1">
-                  <svg className="w-6 h-6 mr-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <svg
+                    className="w-6 h-6 mr-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
                 <div>
@@ -257,7 +479,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
-          
+
           {/* Dashboard Content */}
           {activeTab === "dashboard" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -275,245 +497,173 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
-          
+
           {/* Users Section */}
           {activeTab === "users" && (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h2 className="text-lg font-semibold">Manage Users</h2>
-              </div>
-              
-              <div className="divide-y divide-gray-200">
-                {users.length === 0 ? (
-                  <p className="text-gray-600 p-6">No users found.</p>
-                ) : (
-                  users.map((user) => (
-                    <div
-                      key={user._id}
-                      className="px-6 py-4 flex justify-between items-center hover:bg-gray-50"
-                    >
-                      <div className="flex items-center">
-                        <div className="bg-indigo-100 text-indigo-800 rounded-full w-10 h-10 flex items-center justify-center mr-4">
-                          {getInitial(user.username)}
-                        </div>
-                        <div>
-                          <p className="text-lg font-medium">{user.username || "Unnamed User"}</p>
-                          <p className="text-sm text-gray-600">{user.email || "No email"}</p>
-                        </div>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setIsEditUserModalOpen(true);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(user._id)}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+            <ManageUsers
+              users={users}
+              onEditUser={(user) => {
+                setSelectedUser(user);
+                setIsEditUserModalOpen(true);
+              }}
+              onDeleteUser={(userId) => handleDeleteUser(userId)}
+            />
           )}
-          
+
           {/* Listings Section */}
           {activeTab === "listings" && (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h2 className="text-lg font-semibold">Manage Listings</h2>
-              </div>
-              
-              <div className="divide-y divide-gray-200">
-                {listings.length === 0 ? (
-                  <p className="text-gray-600 p-6">No listings found.</p>
+            <ManageListings
+              listings={listings}
+              onViewListing={(listing) => {
+                setSelectedListing(listing);
+                setIsViewListingModalOpen(true);
+              }}
+              onEditListing={(listing) => {
+                setSelectedListing(listing);
+                setIsEditListingModalOpen(true);
+              }}
+              onDeleteListing={(listingId) => handleDeleteListing(listingId)}
+            />
+          )}
+
+          {/* Workers Section */}
+          {activeTab === "workers" && (
+            <ManageWorkers
+              workers={workers}
+              onEditWorker={(worker) => {
+                setSelectedWorker(worker);
+                setIsEditWorkerModalOpen(true);
+              }}
+              onDeleteWorker={(workerId) => handleDeleteWorker(workerId)}
+              onAddWorker={() => setIsAddWorkerModalOpen(true)}
+            />
+          )}
+
+          {/* Shifting Requests Section */}
+          {activeTab === "shifting-requests" && (
+            <div className="mt-8">
+              <h2 className="text-2xl font-bold mb-4">Shifting Requests</h2>
+              <div className="space-y-4">
+                {shiftingRequests.length > 0 ? (
+                  shiftingRequests.map((request) => {
+                    const workerDetails = request.workerId ? getWorkerDetails(request.workerId) : null;
+                    
+                    return (
+                      <div key={request._id} className="bg-white p-4 rounded-lg shadow">
+                        <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+                          <div className="mb-4 md:mb-0 md:w-1/2">
+                            <h3 className="text-lg font-semibold">{request.customerName}</h3>
+                            <p className="text-gray-600">{request.shiftingAddress}</p>
+                            <p className="text-gray-600">{new Date(request.shiftingDate).toLocaleDateString()}</p>
+                            
+                            {/* Worker Details Section */}
+                            <div className="mt-4 bg-gray-50 p-3 rounded-md">
+                              <h4 className="font-medium text-gray-700 mb-2">Worker Details</h4>
+                              {workerDetails ? (
+                                <div className="space-y-1">
+                                  <p><span className="font-medium">Name:</span> {workerDetails.name}</p>
+                                  <p><span className="font-medium">Experience:</span> {workerDetails.experience}</p>
+                                  <p><span className="font-medium">Rate:</span> {workerDetails.rate}</p>
+                                  <p><span className="font-medium">Specialties:</span> {workerDetails.specialties}</p>
+                                  <p><span className="font-medium">Rating:</span> {workerDetails.rating}/5</p>
+                                </div>
+                              ) : (
+                                <p className="text-gray-500 italic">No worker assigned or worker information not available</p>
+                              )}
+                            </div>
+                            
+                            <div className="mt-3">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                                request.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                request.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-2 md:w-1/2 md:justify-end">
+                            {/* Show loading indicator when processing */}
+                            {processingRequestIds.includes(request._id) ? (
+                              <div className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center">
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Updating...
+                              </div>
+                            ) : (
+                              <>
+                                {/* Only show status buttons if no update has been made yet */}
+                                {!request.statusUpdated ? (
+                                  <>
+                                    {renderStatusButton(request, "approved", "bg-green-500")}
+                                    {renderStatusButton(request, "rejected", "bg-red-500")}
+                                    {renderStatusButton(request, "pending", "bg-yellow-500")}
+                                  </>
+                                ) : (
+                                  // Show only the current status button
+                                  <div className={`${
+                                    request.status === 'approved' ? 'bg-green-500' :
+                                    request.status === 'rejected' ? 'bg-red-500' : 'bg-yellow-500'
+                                  } text-white px-4 py-2 rounded-lg`}>
+                                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
                 ) : (
-                  listings.map((listing) => (
-                    <div
-                      key={listing._id}
-                      className="px-6 py-4 flex justify-between items-center hover:bg-gray-50"
-                    >
-                      <div>
-                        <p className="text-lg font-medium">{listing.name || "Unnamed Listing"}</p>
-                        <p className="text-sm text-gray-600">{listing.address || "No address"}</p>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
-                          onClick={() => {
-                            setSelectedListing(listing);
-                            setIsViewListingModalOpen(true);
-                          }}
-                        >
-                          View
-                        </button>
-                        <button
-                          className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-sm"
-                          onClick={() => {
-                            setSelectedListing(listing);
-                            setIsEditListingModalOpen(true);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteListing(listing._id)}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                  <div className="bg-white p-8 rounded-lg shadow text-center">
+                    <p className="text-gray-600">No shifting requests found.</p>
+                  </div>
                 )}
               </div>
-            </div>
-          )}
-          
-          {/* Settings Section */}
-          {activeTab === "settings" && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-4">Settings</h2>
-              <p className="text-gray-600">Settings panel coming soon.</p>
             </div>
           )}
         </main>
       </div>
 
-      {/* Edit User Modal */}
-      <Modal isOpen={isEditUserModalOpen} onClose={() => setIsEditUserModalOpen(false)}>
-        <h2 className="text-xl font-semibold mb-4">Edit User</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const updatedData = {
-              username: formData.get("username"),
-              email: formData.get("email"),
-            };
-            handleEditUser(selectedUser._id, updatedData);
-          }}
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Username</label>
-              <input
-                type="text"
-                name="username"
-                defaultValue={selectedUser?.username}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                type="email"
-                name="email"
-                defaultValue={selectedUser?.email}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <button
-                type="button"
-                onClick={() => setIsEditUserModalOpen(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </form>
-      </Modal>
+      {/* Modals */}
+      <EditUserModal
+        isOpen={isEditUserModalOpen}
+        onClose={() => setIsEditUserModalOpen(false)}
+        selectedUser={selectedUser}
+        onSave={(updatedData) => handleEditUser(selectedUser._id, updatedData)}
+      />
 
-      {/* Edit Listing Modal */}
-      <Modal isOpen={isEditListingModalOpen} onClose={() => setIsEditListingModalOpen(false)}>
-        <h2 className="text-xl font-semibold mb-4">Edit Listing</h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const updatedData = {
-              name: formData.get("name"),
-              address: formData.get("address"),
-            };
-            handleEditListing(selectedListing._id, updatedData);
-          }}
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Name</label>
-              <input
-                type="text"
-                name="name"
-                defaultValue={selectedListing?.name}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Address</label>
-              <input
-                type="text"
-                name="address"
-                defaultValue={selectedListing?.address}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <button
-                type="button"
-                onClick={() => setIsEditListingModalOpen(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </form>
-      </Modal>
+      <EditListingModal
+        isOpen={isEditListingModalOpen}
+        onClose={() => setIsEditListingModalOpen(false)}
+        selectedListing={selectedListing}
+        onSave={(updatedData) => handleEditListing(selectedListing._id, updatedData)}
+      />
 
-      {/* View Listing Modal */}
-      <Modal isOpen={isViewListingModalOpen} onClose={() => setIsViewListingModalOpen(false)}>
-        <h2 className="text-xl font-semibold mb-4">Listing Details</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Name</label>
-            <p className="mt-1 text-gray-900">{selectedListing?.name}</p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Address</label>
-            <p className="mt-1 text-gray-900">{selectedListing?.address}</p>
-          </div>
-          <div className="flex justify-end">
-            <button
-              onClick={() => setIsViewListingModalOpen(false)}
-              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </Modal>
+      <ViewListingModal
+        isOpen={isViewListingModalOpen}
+        onClose={() => setIsViewListingModalOpen(false)}
+        selectedListing={selectedListing}
+      />
+
+      <AddWorkerModal
+        isOpen={isAddWorkerModalOpen}
+        onClose={() => setIsAddWorkerModalOpen(false)}
+        workerData={workerData}
+        onInputChange={handleInputChange}
+        onSave={handleAddWorker}
+      />
+
+      <EditWorkerModal
+        isOpen={isEditWorkerModalOpen}
+        onClose={() => setIsEditWorkerModalOpen(false)}
+        selectedWorker={selectedWorker}
+        onSave={(updatedData) => handleEditWorker(selectedWorker._id, updatedData)}
+      />
     </div>
   );
 }

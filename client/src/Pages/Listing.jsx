@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Slider from 'react-slick';
 import { FaBed, FaBath, FaParking, FaCouch, FaTag, FaStar, FaRegStar, FaUser, FaComment } from 'react-icons/fa';
 import "slick-carousel/slick/slick.css"; 
@@ -9,6 +9,7 @@ import { useSelector } from 'react-redux';
 function Listing() {
   const { currentUser } = useSelector((state) => state.user);
   const { listingId } = useParams();
+  const [searchParams] = useSearchParams(); // Get query parameters
   const navigate = useNavigate();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,8 +19,12 @@ function Listing() {
   const [reviews, setReviews] = useState([]);
   const [reviewLoading, setReviewLoading] = useState(true);
   const [selectedRating, setSelectedRating] = useState(0);
+  const [isEligibleForShifting, setIsEligibleForShifting] = useState(false);
 
   const mainSliderRef = useRef(null);
+
+  // Check if the user has already booked this listing
+  const isBooked = searchParams.get('booked') === 'true'; // Check the query parameter
 
   // Function to calculate the average rating
   const calculateAverageRating = (reviews) => {
@@ -283,14 +288,14 @@ function Listing() {
               </p>
             </div>
 
-            {/* Only show Buy/Book buttons if not the owner */}
-            {!isOwner && (
+            {/* Only show Buy/Book buttons if not the owner and not already booked */}
+            {!isOwner && !isBooked && (
               <>
                 {listing.type === 'sale' && (
-                <button 
-                onClick={() => navigate(`/book/${listing._id}`)}
-                className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-500"
-              >
+                  <button 
+                    onClick={() => navigate(`/book/${listing._id}`)}
+                    className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-500"
+                  >
                     Buy Now
                   </button>
                 )}
@@ -304,8 +309,19 @@ function Listing() {
                 )}
               </>
             )}
-            
-            {/* Edit Property button removed for landlords */}
+
+            {/* Show "You already booked" and "Book HR" button if already booked */}
+            {!isOwner && isBooked && (
+              <div className="mt-4">
+                <p className="text-lg font-semibold text-green-400">You already booked this property.</p>
+                <button
+                  onClick={() => navigate('/hr')} // Redirect to HR booking page
+                  className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-green-600 rounded-lg hover:bg-green-500"
+                >
+                  Book HR
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

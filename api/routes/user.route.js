@@ -17,5 +17,7 @@ router.post("/update/:id", verifyToken, updateUser);
 router.delete("/delete/:id", verifyToken, deleteUser);
 router.get("/listings/:id", verifyToken, getUserListings);
 router.get("/:id", verifyToken, getUser); // Generic route last
+router.put('/update/:id', updateUser);
+
 
 export default router;

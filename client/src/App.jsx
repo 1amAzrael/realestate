@@ -20,6 +20,7 @@ import PaymentPage from './Pages/PaymentPage';
 import ContactLandlord from './Pages/ContactLandlord';
 import BookingForm from './Component/BookingForm';
 
+
 // Wrapper component to conditionally render Header and Footer
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -44,6 +45,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Wrap all routes with the Layout component */}
+        
         <Route
           path="/"
           element={
@@ -109,6 +111,7 @@ function App() {
               </Layout>
             }
           />
+         
         </Route>
         <Route
           path="/about"
@@ -168,7 +171,10 @@ function App() {
         />
 
         {/* Admin Dashboard (no Header/Footer) */}
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />}>
+      
+         
+        </Route>
       </Routes>
     </BrowserRouter>
   );

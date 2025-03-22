@@ -16,6 +16,7 @@ import {
 import { Link } from 'react-router-dom';
 import UserBookings from '../Component/UserBookings';
 import LandlordBookings from '../Component/LandlordBookings';
+import ShiftingBookings from '../Component/ShiftingBookings';
 
 function Profile() {
   const fileRef = useRef(null);
@@ -26,8 +27,29 @@ function Profile() {
   const [userListings, setUserListings] = useState([]);
   const [isLandlord, setIsLandlord] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
+  const [shiftingBookings, setShiftingBookings] = useState([]);
 
   const dispatch = useDispatch();
+
+  // Fetch shifting bookings
+  useEffect(() => {
+    const fetchShiftingBookings = async () => {
+      try {
+        const res = await fetch(`/api/shiftingRequest/user/${currentUser._id}`, {
+          headers: {
+            Authorization: `Bearer ${currentUser.access_token}`,
+          },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Failed to fetch bookings");
+        setShiftingBookings(data.shiftingRequests);
+      } catch (error) {
+        console.error("Fetch Bookings Error:", error);
+      }
+    };
+    fetchShiftingBookings();
+  }, [currentUser._id]);
+
 
   useEffect(() => {
     const checkIfLandlord = async () => {
@@ -190,15 +212,23 @@ function Profile() {
               </Link>
             </>
           ) : (
-            // Only show "My Bookings" if the user is not an admin
             !currentUser.isAdmin && (
-              <Link
-                to="#"
-                onClick={() => setActiveSection('bookings')}
-                className="block px-6 py-3 text-gray-700 hover:bg-gray-200 transition-colors"
-              >
-                My Bookings
-              </Link>
+              <>
+                <Link
+                  to="#"
+                  onClick={() => setActiveSection('bookings')}
+                  className="block px-6 py-3 text-gray-700 hover:bg-gray-200 transition-colors"
+                >
+                  My Bookings
+                </Link>
+                <Link
+                  to="#"
+                  onClick={() => setActiveSection('shifting-bookings')}
+                  className="block px-6 py-3 text-gray-700 hover:bg-gray-200 transition-colors"
+                >
+                  Shifting Bookings
+                </Link>
+              </>
             )
           )}
         </nav>
@@ -328,6 +358,22 @@ function Profile() {
               ) : (
                 <UserBookings />
               )}
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'shifting-bookings' && !currentUser.isAdmin && (
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4">My Shifting Bookings</h2>
+            <div className="space-y-4">
+              {shiftingBookings.map((booking) => (
+                <div key={booking._id} className="bg-white p-4 rounded-lg shadow">
+                  <h3 className="text-lg font-semibold">{booking.customerName}</h3>
+                  <p className="text-gray-600">{booking.shiftingAddress}</p>
+                  <p className="text-gray-600">{new Date(booking.shiftingDate).toLocaleDateString()}</p>
+                  <p className="text-gray-600">Status: {booking.status}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}
