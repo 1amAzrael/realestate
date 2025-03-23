@@ -219,7 +219,7 @@ const BookingForm = () => {
                     </div>
                   </label>
                   <input
-                    type="text"
+                    type="number"
                     id="contact"
                     name="contact"
                     value={formData.contact}

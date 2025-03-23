@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Users, Briefcase, Clock, DollarSign, ChevronRight, Star, MapPin, Calendar, Phone, User } from 'lucide-react';
 import { useSelector } from "react-redux";
-
+import { useNavigate } from "react-router-dom";
 const HrPage = () => {
   const [workers, setWorkers] = useState([]); // State to store workers fetched from the database
+  
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [bookingStep, setBookingStep] = useState(0);
   const [bookingData, setBookingData] = useState({
@@ -13,7 +14,8 @@ const HrPage = () => {
     shiftingAddress: "",
   });
   const { currentUser } = useSelector((state) => state.user); // Get the current user from Redux store
-
+  const navigate = useNavigate();
+  
   // Fetch workers from the database
   useEffect(() => {
     const fetchWorkers = async () => {
@@ -79,8 +81,7 @@ const HrPage = () => {
   };
 
   const handleConfirmShifting = () => {
-    // Redirect to payment page
-    window.location.href = "/payment";
+    navigate("/payment", { state: { worker: selectedWorker, bookingData } });
   };
 
   const handleBackToWorkers = () => {

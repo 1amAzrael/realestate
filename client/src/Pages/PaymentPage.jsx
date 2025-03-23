@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { CreditCard, Calendar, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { useLocation } from "react-router-dom";
 import { Footer } from "../Component/Footer";
 
-
-
 const PaymentPage = () => {
+  const location = useLocation();
+  const { worker, bookingData } = location.state || {}; // Retrieve worker and booking data from state
+
   const [paymentMethod, setPaymentMethod] = useState("khalti");
   const [paymentStatus, setPaymentStatus] = useState(null);
 
@@ -33,20 +35,36 @@ const PaymentPage = () => {
           </div>
 
           <div className="p-8 space-y-8">
+            {/* Order Summary */}
             <div className="bg-gray-50 p-6 rounded-xl">
               <h3 className="text-xl font-semibold text-gray-800 mb-4">Order Summary</h3>
               <div className="space-y-2 text-gray-600">
-                <p className="flex justify-between"><span>Service:</span> <span className="font-medium">Human Resource Shifting</span></p>
-                <p className="flex justify-between"><span>Worker:</span> <span className="font-medium">John Doe</span></p>
-                <p className="flex justify-between"><span>Date:</span> <span className="font-medium">{new Date().toLocaleDateString()}</span></p>
+                <p className="flex justify-between">
+                  <span>Service:</span>
+                  <span className="font-medium">Human Resource Shifting</span>
+                </p>
+                <p className="flex justify-between">
+                  <span>Worker:</span>
+                  <span className="font-medium">{worker?.name}</span>
+                </p>
+                <p className="flex justify-between">
+                  <span>Date:</span>
+                  <span className="font-medium">{bookingData?.shiftingDate}</span>
+                </p>
+                <p className="flex justify-between">
+                  <span>Address:</span>
+                  <span className="font-medium">{bookingData?.shiftingAddress}</span>
+                </p>
               </div>
             </div>
 
+            {/* Amount Due */}
             <div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">Amount Due</h3>
-              <p className="text-4xl font-bold text-indigo-600">NPR 2,000</p>
+              <p className="text-4xl font-bold text-indigo-600">NPR {worker?.rate}</p>
             </div>
 
+            {/* Payment Method */}
             <div>
               <h3 className="text-xl font-semibold text-gray-800 mb-4">Payment Method</h3>
               <div className="space-y-3">
@@ -66,81 +84,18 @@ const PaymentPage = () => {
                   <input
                     type="radio"
                     name="paymentMethod"
-                    value="card"
-                    checked={paymentMethod === "card"}
-                    onChange={() => setPaymentMethod("card")}
+                    value="cash"
+                    checked={paymentMethod === "cash"}
+                    onChange={() => setPaymentMethod("cash")}
                     className="form-radio text-indigo-600 h-5 w-5"
                   />
-                  <span className="flex-grow">Credit/Debit Card</span>
-                  <div className="flex space-x-2">
-                    <div className="w-12 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-sm">Visa</div>
-                    <div className="w-12 h-8 bg-red-600 rounded flex items-center justify-center text-white font-bold text-sm">MC</div>
-                  </div>
+                  <span className="flex-grow">Cash In Hand</span>
+                  <div className="w-12 h-8 bg-green-600 rounded flex items-center justify-center text-white font-bold text-sm">Cash</div>
                 </label>
               </div>
             </div>
 
-            {paymentMethod === "card" && (
-              <form onSubmit={handlePayment} className="space-y-6">
-                <div>
-                  <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                    Card Number
-                  </label>
-                  <div className="relative rounded-md shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <CreditCard className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      name="cardNumber"
-                      id="cardNumber"
-                      className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-12 sm:text-sm border-gray-300 rounded-md"
-                      placeholder="1234 5678 9012 3456"
-                    />
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                      <div className="w-8 h-5 bg-gray-200 rounded flex items-center justify-center text-gray-600 text-xs font-bold">Card</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex space-x-4">
-                  <div className="flex-1">
-                    <label htmlFor="expDate" className="block text-sm font-medium text-gray-700 mb-1">
-                      Expiration Date
-                    </label>
-                    <div className="relative rounded-md shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Calendar className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="expDate"
-                        id="expDate"
-                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                        placeholder="MM / YY"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <label htmlFor="cvv" className="block text-sm font-medium text-gray-700 mb-1">
-                      CVV
-                    </label>
-                    <div className="relative rounded-md shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        name="cvv"
-                        id="cvv"
-                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md"
-                        placeholder="123"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </form>
-            )}
-
+            {/* Payment Button */}
             <button
               onClick={handlePayment}
               className={`w-full text-white px-6 py-3 rounded-lg text-lg font-semibold transition-all duration-300 flex items-center justify-center ${
@@ -166,10 +121,11 @@ const PaymentPage = () => {
                   Payment Successful
                 </>
               ) : (
-                `Pay with ${paymentMethod === "khalti" ? "Khalti" : "Card"}`
+                `Pay with ${paymentMethod === "khalti" ? "Khalti" : "Cash In Hand"}`
               )}
             </button>
 
+            {/* Payment Success Message */}
             {paymentStatus === "success" && (
               <div className="mt-4 p-4 bg-green-100 border border-green-200 rounded-lg flex items-center">
                 <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
@@ -177,6 +133,7 @@ const PaymentPage = () => {
               </div>
             )}
 
+            {/* Security Message */}
             <div className="text-center text-sm text-gray-500 flex items-center justify-center">
               <Lock className="h-4 w-4 mr-1" />
               Your payment is secure and encrypted
@@ -185,7 +142,7 @@ const PaymentPage = () => {
         </div>
       </main>
 
-      <Footer/>
+      <Footer />
     </div>
   );
 };
