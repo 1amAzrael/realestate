@@ -1,22 +1,73 @@
-import React from "react";
+// Modal.jsx
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 const Modal = ({ isOpen, onClose, children }) => {
-  if (!isOpen) return null;
+  const [animation, setAnimation] = useState(isOpen ? "open" : "closed");
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-        <div className="flex justify-end">
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            &times;
-          </button>
-        </div>
+  useEffect(() => {
+    if (isOpen) {
+      setAnimation("opening");
+      const timer = setTimeout(() => setAnimation("open"), 10);
+      return () => clearTimeout(timer);
+    } else {
+      setAnimation("closing");
+      const timer = setTimeout(() => setAnimation("closed"), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
+
+  // Handle clicks outside the modal to close it
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  if (animation === "closed") return null;
+
+  return createPortal(
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black transition-opacity duration-300 ${
+        animation === "opening" || animation === "closing"
+          ? "bg-opacity-0"
+          : "bg-opacity-50"
+      }`}
+      onClick={handleBackdropClick}
+    >
+      <div
+        className={`bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 transform transition-all duration-300 ${
+          animation === "opening"
+            ? "opacity-0 translate-y-4"
+            : animation === "closing"
+              ? "opacity-0 translate-y-4"
+              : "opacity-100 translate-y-0"
+        }`}
+      >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

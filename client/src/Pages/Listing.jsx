@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Slider from 'react-slick';
 import { FaBed, FaBath, FaParking, FaCouch, FaTag, FaStar, FaRegStar, FaUser, FaComment } from 'react-icons/fa';
-import "slick-carousel/slick/slick.css"; 
+import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { useSelector } from 'react-redux';
 
@@ -136,7 +136,7 @@ function Listing() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         // Add the new review to the reviews array
         setReviews([...reviews, {
@@ -147,11 +147,11 @@ function Listing() {
           comment,
           createdAt: new Date(),
         }]);
-        
+
         // Reset the form
         setComment('');
         setSelectedRating(0);
-        
+
         alert('Review submitted successfully!');
       } else {
         alert(data.message || 'Failed to submit review');
@@ -214,7 +214,7 @@ function Listing() {
         {/* Thumbnail Images */}
         <div className="flex justify-center space-x-2 mt-4">
           {listing.imageURL.map((url, index) => (
-            <img 
+            <img
               key={index}
               src={url}
               alt=""
@@ -232,8 +232,8 @@ function Listing() {
             {listing.type === 'sale' ? 'For Sale' : 'For Rent'}
           </span>
           {currentUser && !isOwner && (
-            <button 
-              onClick={handleContactLandlord} 
+            <button
+              onClick={handleContactLandlord}
               className='mt-2 inline-block px-3 py-1 text-sm font-bold rounded ml-2 bg-purple-500 hover:bg-purple-600 transition-colors duration-300'
             >
               Contact Landlord
@@ -248,179 +248,136 @@ function Listing() {
       </div>
 
       {/* Details Section */}
-      <div className="max-w-5xl mx-auto p-8 mt-8 bg-gray-800 rounded-lg shadow-lg">
-        <h2 className="text-3xl font-bold mb-4">Property Details</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left: Overview */}
-          <div>
-            <p className="text-gray-300 leading-relaxed text-lg">{listing.description}</p>
+    <div className="max-w-6xl mx-auto p-6 lg:p-8 mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+      <h2 className="text-3xl font-bold mb-6 text-gray-800 dark:text-white">Property Details</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
+        {/* Left: Description */}
+        <div className="md:col-span-3 space-y-6">
+          <div className="p-6 rounded-lg bg-gray-50 dark:bg-gray-700">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white flex items-center">
+              <svg className="w-5 h-5 mr-2 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              About This Property
+            </h3>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">{listing.description}</p>
           </div>
 
-          {/* Right: Details */}
-          <div className="space-y-3">
-            <p className="flex items-center text-xl"><FaTag className="mr-2 text-yellow-500" /> Price: <span className="ml-2 font-bold">Rs. {listing.price.toLocaleString()}</span></p>
-            {listing.offer && <p className="flex items-center text-xl text-red-400"><FaTag className="mr-2" /> Discount Price: <span className="ml-2 font-bold">Rs. {listing.discountPrice.toLocaleString()}</span></p>}
-            <p className="flex items-center text-xl"><FaBed className="mr-2 text-blue-400" /> Bedrooms: <span className="ml-2">{listing.bedrooms}</span></p>
-            <p className="flex items-center text-xl"><FaBath className="mr-2 text-blue-300" /> Bathrooms: <span className="ml-2">{listing.bathrooms}</span></p>
-            <p className="flex items-center text-xl"><FaCouch className="mr-2 text-green-400" /> Furnished: <span className="ml-2">{listing.furnished ? 'Yes' : 'No'}</span></p>
-            <p className="flex items-center text-xl"><FaParking className="mr-2 text-gray-300" /> Parking: <span className="ml-2">{listing.parking ? 'Yes' : 'No'}</span></p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex flex-col items-center">
+              <FaBed className="text-blue-500 dark:text-blue-400 text-2xl mb-2" />
+              <span className="text-gray-900 dark:text-gray-100 font-medium">{listing.bedrooms}</span>
+              <span className="text-gray-500 dark:text-gray-400 text-sm">Bedrooms</span>
+            </div>
 
-            <div className="flex items-center mt-4">
-              <div className="flex">
-                {[...Array(5)].map((_, index) => {
-                  const ratingValue = index + 1;
-                  return (
-                    <FaStar
-                      key={index}
-                      className="text-yellow-400"
-                      size={24}
-                      style={{ opacity: ratingValue <= averageRating ? 1 : 0.3 }}
-                    />
-                  );
-                })}
-              </div>
-              <p className="ml-2 text-lg">
-                <span className="font-bold">{averageRating ? averageRating.toFixed(1) : '0'}</span>
-                <span className="text-gray-400 ml-1">
-                  ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+            <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 flex flex-col items-center">
+              <FaBath className="text-green-500 dark:text-green-400 text-2xl mb-2" />
+              <span className="text-gray-900 dark:text-gray-100 font-medium">{listing.bathrooms}</span>
+              <span className="text-gray-500 dark:text-gray-400 text-sm">Bathrooms</span>
+            </div>
+
+            <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex flex-col items-center">
+              <FaParking className="text-purple-500 dark:text-purple-400 text-2xl mb-2" />
+              <span className="text-gray-900 dark:text-gray-100 font-medium">{listing.parking ? 'Yes' : 'No'}</span>
+              <span className="text-gray-500 dark:text-gray-400 text-sm">Parking</span>
+            </div>
+
+            <div className="p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex flex-col items-center">
+              <FaCouch className="text-indigo-500 dark:text-indigo-400 text-2xl mb-2" />
+              <span className="text-gray-900 dark:text-gray-100 font-medium">{listing.furnished ? 'Yes' : 'No'}</span>
+              <span className="text-gray-500 dark:text-gray-400 text-sm">Furnished</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Price & Action */}
+        <div className="md:col-span-2">
+          <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg shadow-inner">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-300">Type:</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  listing.type === 'rent'
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                    : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                }`}>
+                  {listing.type === 'rent' ? 'For Rent' : 'For Sale'}
                 </span>
-              </p>
-            </div>
-
-            {/* Only show Buy/Book buttons if not the owner and not already booked */}
-            {!isOwner && !isBooked && (
-              <>
-                {listing.type === 'sale' && (
-                  <button 
-                    onClick={() => navigate(`/book/${listing._id}`)}
-                    className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-500"
-                  >
-                    Buy Now
-                  </button>
-                )}
-                {listing.type === 'rent' && (
-                  <button 
-                    onClick={() => navigate(`/book/${listing._id}`)}
-                    className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-500"
-                  >
-                    Book Now
-                  </button>
-                )}
-              </>
-            )}
-
-            {/* Show "You already booked" and "Book HR" button if already booked */}
-            {!isOwner && isBooked && (
-              <div className="mt-4">
-                <p className="text-lg font-semibold text-green-400">You already booked this property.</p>
-                <button
-                  onClick={() => navigate('/hr')} // Redirect to HR booking page
-                  className="mt-4 inline-block px-6 py-3 text-lg font-bold text-white bg-green-600 rounded-lg hover:bg-green-500"
-                >
-                  Book HR
-                </button>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Reviews Section */}
-        <div className="mt-12">
-          <h2 className="text-3xl font-bold mb-6 border-b border-gray-700 pb-2">Reviews & Ratings</h2>
-          
-          {/* Add Review Form - Only show if user is logged in, not the owner, and can leave reviews */}
-          {currentUser && !isOwner && (
-            <div className="bg-gray-700 p-6 rounded-lg mb-8">
-              <h3 className="text-xl font-semibold mb-4">Leave a Review</h3>
-              
-              <div className="mb-4">
-                <p className="mb-2">Your Rating:</p>
-                <div className="flex">
-                  {[...Array(5)].map((_, index) => {
-                    const ratingValue = index + 1;
-                    return (
-                      <label key={index} className="cursor-pointer">
-                        <input
-                          type="radio"
-                          name="rating"
-                          value={ratingValue}
-                          onClick={() => handleRate(ratingValue)}
-                          className="hidden"
-                        />
-                        {ratingValue <= selectedRating ? (
-                          <FaStar className="text-yellow-400 mr-1" size={28} />
-                        ) : (
-                          <FaRegStar className="text-yellow-400 mr-1" size={28} />
-                        )}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <label className="block mb-2">Your Review:</label>
-                <textarea
-                  value={comment}
-                  onChange={handleCommentChange}
-                  rows="4"
-                  className="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
-                  placeholder="Share your experience with this property..."
-                ></textarea>
-              </div>
-              
-              <button
-                onClick={submitReview}
-                className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-500 transition-colors"
-                disabled={!selectedRating}
-              >
-                Submit Review
-              </button>
-            </div>
-          )}
-          
-          {/* Reviews List - Visible to everyone */}
-          <div className="space-y-6">
-            {reviewLoading ? (
-              <p className="text-center text-gray-400">Loading reviews...</p>
-            ) : reviews.length > 0 ? (
-              reviews.map((review) => (
-                <div key={review._id} className="bg-gray-700/50 p-5 rounded-lg">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center">
-                      <div className="bg-gray-600 h-10 w-10 rounded-full flex items-center justify-center">
-                        <FaUser className="text-gray-300" />
-                      </div>
-                      <div className="ml-3">
-                        <h4 className="font-semibold">{review.username}</h4>
-                        <div className="flex mt-1">
-                          {[...Array(5)].map((_, i) => (
-                            <FaStar 
-                              key={i} 
-                              size={14} 
-                              className={i < review.rating ? "text-yellow-400" : "text-gray-500"} 
-                            />
-                          ))}
-                        </div>
-                      </div>
+              <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
+                {listing.offer ? (
+                  <>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-gray-600 dark:text-gray-300">Original Price:</span>
+                      <span className="text-gray-500 dark:text-gray-400 line-through">
+                        ${listing.price.toLocaleString()}
+                      </span>
                     </div>
-                    <span className="text-sm text-gray-400">{formatDate(review.createdAt)}</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-300">Discounted Price:</span>
+                      <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        ${listing.discountPrice.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between mt-1 text-sm">
+                      <span className="text-gray-600 dark:text-gray-300">You Save:</span>
+                      <span className="text-red-600 dark:text-red-400 font-medium">
+                        ${(listing.price - listing.discountPrice).toLocaleString()}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-300">Price:</span>
+                    <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                      ${listing.price.toLocaleString()}
+                      {listing.type === 'rent' && <span className="text-sm font-normal text-gray-500 dark:text-gray-400">/month</span>}
+                    </span>
                   </div>
-                  <p className="mt-3 text-gray-300">{review.comment}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-gray-400">No reviews yet. {!isOwner && "Be the first to review this property!"}</p>
-            )}
-          </div>
-        </div>
+                )}
+              </div>
 
-        {/* Meta Info */}
-        <div className="mt-6 border-t pt-4 text-gray-400 text-sm">
-          <p>Listed on: {new Date(listing.createdAt).toLocaleDateString()} &middot; Last updated: {new Date(listing.updatedAt).toLocaleDateString()}</p>
+              <div className="mt-8">
+                {!isOwner && !isBooked && (
+                  <button
+                    onClick={() => navigate(`/book/${listing._id}`)}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 transform hover:-translate-y-0.5 transition-all shadow-lg flex items-center justify-center"
+                  >
+                    <svg className="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                    </svg>
+                    {listing.type === 'rent' ? 'Book Viewing' : 'Request Purchase'}
+                  </button>
+                )}
+
+                {!isOwner && isBooked && (
+                  <div className="space-y-4">
+                    <div className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 rounded-lg p-4 flex items-start">
+                      <svg className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <span>You have already booked this property</span>
+                    </div>
+
+                    <button
+                      onClick={() => navigate('/hr')}
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-3 px-4 rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 transform hover:-translate-y-0.5 transition-all shadow-lg flex items-center justify-center"
+                    >
+                      <svg className="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                      </svg>
+                      Book HR Services
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

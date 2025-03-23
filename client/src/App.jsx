@@ -7,8 +7,8 @@ import Profile from './Pages/Profile';
 import Header from './Component/Header';
 import About from './Pages/About';
 import PrivateRoute from './Component/PrivateRoute';
-import CreateListing from './Pages/createListing';
-import UpdateListing from './Pages/updateListing';
+import CreateListing from './Pages/CreateListing.jsx';
+import UpdateListing from './Pages/UpdateListing.jsx';
 import Listing from './Pages/Listing';
 import Search from './Pages/Search';
 import UserBookings from './Component/UserBookings';
@@ -19,6 +19,7 @@ import HrPage from './Pages/HrPage';
 import PaymentPage from './Pages/PaymentPage';
 import ContactLandlord from './Pages/ContactLandlord';
 import BookingForm from './Component/BookingForm';
+
 
 
 // Wrapper component to conditionally render Header and Footer
@@ -161,6 +162,7 @@ function App() {
             </Layout>
           }
         />
+       
         <Route
           path="/contact-landlord/:listingId"
           element={
@@ -169,6 +171,7 @@ function App() {
             </Layout>
           }
         />
+
 
         {/* Admin Dashboard (no Header/Footer) */}
         <Route path="/admin-dashboard" element={<AdminDashboard />}>
