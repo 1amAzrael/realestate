@@ -1,100 +1,110 @@
+// src/Pages/PaymentVerify.jsx
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { verifyKhaltiPayment } from '../Pages/khaltiService';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { verifyKhaltiPayment } from './khaltiService';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 const PaymentVerify = () => {
-    const location = useLocation();
-    const navigate = useNavigate();
-    const [status, setStatus] = useState('verifying');
-    const [error, setError] = useState(null);
-  
-    useEffect(() => {
-      const queryParams = new URLSearchParams(location.search);
-      const pidx = queryParams.get('pidx');
-      const transactionId = queryParams.get('transaction_id');
-      const initialStatus = queryParams.get('status');
-  
-      const verifyPayment = async () => {
-        try {
-          if (!pidx) {
-            throw new Error('Payment reference missing');
-          }
-  
-          const result = await verifyKhaltiPayment(pidx);
-          
-          if (result.status === 'Completed') {
-            setStatus('success');
-            // Redirect to success page after 3 seconds
-            setTimeout(() => {
-              navigate('/payment/success', {
-                state: {
-                  transactionId,
-                  amount: result.amount / 100 // Convert back to NPR
-                }
-              });
-            }, 3000);
-          } else {
-            setStatus(initialStatus || result.status);
-          }
-        } catch (err) {
-          setError(err.message);
-          setStatus('failed');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [verifying, setVerifying] = useState(true);
+  const [paymentStatus, setPaymentStatus] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const verifyPayment = async () => {
+      try {
+        // Get pidx parameter from URL
+        const pidx = searchParams.get('pidx');
+
+        if (!pidx) {
+          throw new Error('Payment ID not found');
         }
-      };
-  
-      verifyPayment();
-    }, [location, navigate]);
+
+        console.log("Verifying payment with pidx:", pidx);
+
+        // Verify the payment with Khalti
+        const response = await verifyKhaltiPayment(pidx);
+
+        console.log("Payment verification response:", response);
+
+        // Get booking details from localStorage
+        const pendingBooking = JSON.parse(localStorage.getItem('pending_booking') || '{}');
+
+        // Check payment status
+        if (response.status === 'Completed') {
+          setPaymentStatus('success');
+
+          // Here you would typically save the completed booking to your database
+          // This is where you'd make an API call to your backend
+
+          // Redirect to success page after a short delay
+          setTimeout(() => {
+            navigate('/payment/success', {
+              state: {
+                paymentDetails: response,
+                bookingDetails: pendingBooking
+              }
+            });
+
+            // Clear the pending booking from localStorage
+            localStorage.removeItem('pending_booking');
+          }, 2000);
+        } else {
+          setPaymentStatus('failed');
+          setError(`Payment ${response.status}`);
+        }
+      } catch (error) {
+        setPaymentStatus('failed');
+        setError(error.message || 'Payment verification failed');
+        console.error('Payment verification error:', error);
+        if (error.response) {
+          console.error('Error response data:', error.response.data);
+        }
+      } finally {
+        setVerifying(false);
+      }
+    };
+
+    verifyPayment();
+  }, [searchParams, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-indigo-100 flex flex-col items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
-        {status === 'verifying' && (
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500 mx-auto mb-4"></div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Verifying Payment</h2>
-            <p className="text-gray-600">Please wait while we verify your payment...</p>
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-indigo-100 flex flex-col items-center justify-center">
+      <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
+        <h1 className="text-2xl font-bold text-center text-indigo-600 mb-6">
+          Payment Verification
+        </h1>
+
+        {verifying && (
+          <div className="flex flex-col items-center justify-center p-6">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+            <p className="text-gray-600">Verifying your payment...</p>
           </div>
         )}
 
-        {status === 'success' && (
-          <div className="text-center">
-            <div className="bg-green-100 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
-              <svg className="h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Payment Successful!</h2>
-            <p className="text-gray-600 mb-6">Thank you for your payment. Your booking is confirmed.</p>
+        {paymentStatus === 'success' && (
+          <div className="flex flex-col items-center justify-center p-6 bg-green-50 rounded-lg">
+            <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
+            <p className="text-green-700 font-medium text-center">
+              Payment successful! Redirecting to confirmation page...
+            </p>
+          </div>
+        )}
+
+        {paymentStatus === 'failed' && (
+          <div className="flex flex-col items-center justify-center p-6 bg-red-50 rounded-lg">
+            <XCircle className="h-12 w-12 text-red-500 mb-4" />
+            <p className="text-red-700 font-medium text-center">
+              Payment verification failed
+            </p>
+            {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
             <button
               onClick={() => navigate('/')}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
+              className="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
             >
               Return to Home
             </button>
-          </div>
-        )}
-
-        {status === 'User canceled' && (
-          <div className="text-center">
-            <div className="bg-yellow-100 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
-              <svg className="h-10 w-10 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Payment Canceled</h2>
-            <p className="text-gray-600 mb-6">You canceled the payment process.</p>
-            <button
-              onClick={() => navigate('/payment')}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
-            <p>{error}</p>
           </div>
         )}
       </div>
