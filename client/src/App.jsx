@@ -19,7 +19,8 @@ import HrPage from './Pages/HrPage';
 import PaymentPage from './Pages/PaymentPage';
 import ContactLandlord from './Pages/ContactLandlord';
 import BookingForm from './Component/BookingForm';
-
+import PaymentVerify from './Pages/PaymentVerify.jsx';
+import PaymentSuccess from './Pages/PaymentSuccess.jsx';
 
 
 // Wrapper component to conditionally render Header and Footer
@@ -171,6 +172,8 @@ function App() {
             </Layout>
           }
         />
+        <Route path="/payment/verify" element={<PaymentVerify />} />
+        <Route path="/payment/success" element={<PaymentSuccess />} />
 
 
         {/* Admin Dashboard (no Header/Footer) */}
