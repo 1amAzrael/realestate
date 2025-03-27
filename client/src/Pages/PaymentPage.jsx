@@ -1,8 +1,21 @@
-//src/Pages/PaymentPage.jsx
 import React, { useState, useEffect } from "react";
-import { CreditCard, Calendar, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 import { useLocation, useNavigate } from "react-router-dom";
-import { Footer } from "../Component/Footer";
+import { 
+  CreditCard, 
+  Calendar, 
+  Lock, 
+  CheckCircle, 
+  AlertCircle, 
+  User, 
+  Mail, 
+  Phone, 
+  ChevronLeft, 
+  DollarSign,
+  Truck,
+  Calendar as CalendarIcon,
+  Clock,
+  MapPin
+} from 'lucide-react';
 import { initiateKhaltiPayment } from './khaltiService.js';
 
 const PaymentPage = () => {
@@ -15,9 +28,9 @@ const PaymentPage = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
-    name: '',
+    name: bookingData?.customerName || '',
     email: '',
-    phone: ''
+    phone: bookingData?.customerPhone || ''
   });
 
   const parseRate = (rate) => {
@@ -28,10 +41,6 @@ const PaymentPage = () => {
   };
 
   useEffect(() => {
-    console.log("Raw worker data:", worker);
-    console.log("Raw worker rate:", worker?.rate);
-    console.log("Parsed worker rate:", parseRate(worker?.rate));
-
     if (!worker || !bookingData) {
       setError("Missing booking information. Please try again.");
     }
@@ -138,178 +147,303 @@ const PaymentPage = () => {
     }
   };
 
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 to-indigo-100 flex flex-col">
-      <header className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 shadow-lg">
-        <div className="container mx-auto">
-          <h1 className="text-3xl font-bold tracking-tight">RentPal <span className="text-purple-200">Payment</span></h1>
+    <div className="min-h-screen pt-20 bg-gradient-to-b from-indigo-50 to-purple-50">
+      <div className="container mx-auto px-4 py-12">
+        {/* Header with back button */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <button 
+            onClick={handleGoBack}
+            className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors mb-4"
+          >
+            <ChevronLeft className="mr-1 h-5 w-5" />
+            <span>Back</span>
+          </button>
+          <h1 className="text-3xl font-bold text-gray-900">Complete Your Payment</h1>
+          <p className="text-gray-600 mt-2">Secure your booking with a simple payment process</p>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-12 flex-grow">
-        <div className="max-w-lg mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-500 to-indigo-500 p-8 text-white">
-            <h2 className="text-3xl font-bold">Payment Details</h2>
-            <p className="mt-2 text-purple-100">Complete your booking securely</p>
-          </div>
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Payment Form */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+                  <h2 className="text-xl font-bold">Payment Details</h2>
+                  <p className="text-indigo-100 text-sm mt-1">All transactions are secure and encrypted</p>
+                </div>
+                <div className="p-6">
+                  {/* Customer Information */}
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      <User className="h-5 w-5 mr-2 text-indigo-600" />
+                      Customer Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={customerInfo.name}
+                            onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
+                            className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Your full name"
+                            required
+                          />
+                          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <div className="relative">
+                          <input
+                            type="email"
+                            value={customerInfo.email}
+                            onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
+                            className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="email@example.com"
+                            required
+                          />
+                          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        </div>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <div className="relative">
+                          <input
+                            type="tel"
+                            value={customerInfo.phone}
+                            onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
+                            className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="10-digit phone number"
+                            required
+                          />
+                          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Format: 9XXXXXXXXX (10 digits)</p>
+                      </div>
+                    </div>
+                  </div>
 
-          <div className="p-8 space-y-8">
+                  {/* Payment Method Selection */}
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      <CreditCard className="h-5 w-5 mr-2 text-indigo-600" />
+                      Payment Method
+                    </h3>
+                    <div className="space-y-3">
+                      <label className={`
+                        flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-all
+                        ${paymentMethod === "khalti" 
+                          ? "border-indigo-500 bg-indigo-50 shadow-sm" 
+                          : "border-gray-300 hover:border-indigo-300 hover:bg-indigo-50/30"}
+                      `}>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="khalti"
+                          checked={paymentMethod === "khalti"}
+                          onChange={() => setPaymentMethod("khalti")}
+                          className="h-5 w-5 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div className="flex flex-1 justify-between items-center">
+                          <span className="font-medium text-gray-900">Khalti Digital Wallet</span>
+                          <div className="w-12 h-8 bg-purple-600 rounded flex items-center justify-center text-white font-bold text-sm">Khalti</div>
+                        </div>
+                      </label>
+                      
+                      <label className={`
+                        flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-all
+                        ${paymentMethod === "cash" 
+                          ? "border-green-500 bg-green-50 shadow-sm" 
+                          : "border-gray-300 hover:border-green-300 hover:bg-green-50/30"}
+                      `}>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="cash"
+                          checked={paymentMethod === "cash"}
+                          onChange={() => setPaymentMethod("cash")}
+                          className="h-5 w-5 text-green-600 focus:ring-green-500"
+                        />
+                        <div className="flex flex-1 justify-between items-center">
+                          <span className="font-medium text-gray-900">Cash In Hand</span>
+                          <div className="w-12 h-8 bg-green-600 rounded flex items-center justify-center text-white font-bold text-sm">Cash</div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Error Message */}
+                  {error && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center mb-6">
+                      <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
+                      <span className="text-red-700 text-sm">{error}</span>
+                    </div>
+                  )}
+
+                  {/* Success Message */}
+                  {paymentStatus === "success" && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center mb-6">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
+                      <span className="text-green-700 text-sm">Your payment was successful! Redirecting to confirmation page...</span>
+                    </div>
+                  )}
+
+                  {/* Payment Button */}
+                  <button
+                    onClick={handlePayment}
+                    disabled={loading || paymentStatus === "success" || !worker || !bookingData}
+                    className={`
+                      w-full py-4 px-6 rounded-lg text-white font-medium flex items-center justify-center
+                      ${loading 
+                        ? "bg-gray-400 cursor-not-allowed" 
+                        : paymentStatus === "success"
+                          ? "bg-green-500 cursor-not-allowed"
+                          : paymentMethod === "khalti" 
+                            ? "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700" 
+                            : "bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700"
+                      }
+                      transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5
+                    `}
+                  >
+                    {loading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Processing...
+                      </>
+                    ) : paymentStatus === "success" ? (
+                      <>
+                        <CheckCircle className="mr-2 h-5 w-5" />
+                        Payment Successful
+                      </>
+                    ) : (
+                      <>
+                        {paymentMethod === "khalti" ? (
+                          <>
+                            <img src="/khalti-logo.png" alt="Khalti" className="h-5 w-5 mr-2" />
+                            Pay with Khalti
+                          </>
+                        ) : (
+                          <>
+                            <DollarSign className="h-5 w-5 mr-2" />
+                            Pay with Cash
+                          </>
+                        )}
+                      </>
+                    )}
+                  </button>
+
+                  {/* Security Information */}
+                  <div className="mt-6 flex items-center justify-center text-sm text-gray-500">
+                    <Lock className="h-4 w-4 mr-2" />
+                    <span>Your payment is secure and encrypted</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Order Summary */}
-            <div className="bg-gray-50 p-6 rounded-xl">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Order Summary</h3>
-              {(!worker || !bookingData) ? (
-                <div className="text-red-600">
-                  <p>Missing booking information. Please go back and try again.</p>
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden sticky top-24">
+                <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-6 text-white">
+                  <h2 className="text-xl font-bold flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    Order Summary
+                  </h2>
                 </div>
-              ) : (
-                <div className="space-y-2 text-gray-600">
-                  <p className="flex justify-between">
-                    <span>Service:</span>
-                    <span className="font-medium">Human Resource Shifting</span>
-                  </p>
-                  <p className="flex justify-between">
-                    <span>Worker:</span>
-                    <span className="font-medium">{worker?.name}</span>
-                  </p>
-                  <p className="flex justify-between">
-                    <span>Date:</span>
-                    <span className="font-medium">{bookingData?.shiftingDate}</span>
-                  </p>
-                  <p className="flex justify-between">
-                    <span>Address:</span>
-                    <span className="font-medium">{bookingData?.shiftingAddress}</span>
-                  </p>
+                
+                <div className="p-6">
+                  {(!worker || !bookingData) ? (
+                    <div className="flex items-center justify-center h-40">
+                      <div className="text-center">
+                        <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-2" />
+                        <p className="text-gray-600">Missing booking information.</p>
+                        <button 
+                          onClick={handleGoBack}
+                          className="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
+                        >
+                          Go back and try again
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Worker Information */}
+                      <div className="mb-6 pb-6 border-b border-gray-200">
+                        <h3 className="font-medium text-gray-800 mb-3">Service Details</h3>
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-lg">
+                            {worker.name ? worker.name.charAt(0).toUpperCase() : 'W'}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">{worker.name || 'Worker'}</p>
+                            <p className="text-sm text-gray-500">{worker.experience || 'Experienced professional'}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-3 text-sm">
+                          <div className="flex items-start">
+                            <Truck className="h-4 w-4 text-indigo-500 mt-0.5 mr-2 flex-shrink-0" />
+                            <p className="text-gray-700">Human Resource Shifting</p>
+                          </div>
+                          <div className="flex items-start">
+                            <CalendarIcon className="h-4 w-4 text-indigo-500 mt-0.5 mr-2 flex-shrink-0" />
+                            <p className="text-gray-700">
+                              <span className="font-medium">Shifting Date: </span>
+                              {bookingData.shiftingDate ? new Date(bookingData.shiftingDate).toLocaleDateString() : 'Not specified'}
+                            </p>
+                          </div>
+                          <div className="flex items-start">
+                            <MapPin className="h-4 w-4 text-indigo-500 mt-0.5 mr-2 flex-shrink-0" />
+                            <p className="text-gray-700">
+                              <span className="font-medium">Address: </span>
+                              {bookingData.shiftingAddress || 'Not specified'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Price Details */}
+                      <div>
+                        <h3 className="font-medium text-gray-800 mb-3">Payment Details</h3>
+                        
+                        <div className="space-y-2 mb-4">
+                          <div className="flex justify-between text-gray-600">
+                            <span>Service Charge</span>
+                            <span>NPR {worker.rate || 1000}</span>
+                          </div>
+                          <div className="flex justify-between text-gray-600">
+                            <span>Tax</span>
+                            <span>NPR 0</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                          <span className="font-semibold text-gray-900">Total Amount</span>
+                          <span className="text-2xl font-bold text-indigo-600">
+                            NPR {worker.rate || 1000}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-
-            {/* Amount Due */}
-            <div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Amount Due</h3>
-              <p className="text-4xl font-bold text-indigo-600">
-                NPR {worker?.rate ? worker.rate : (1000).toLocaleString()}
-                {!worker?.rate && <span className="text-sm ml-2 text-gray-500">(Test Amount)</span>}
-              </p>
-            </div>
-
-            {/* Customer Information */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold text-gray-800">Customer Information</h3>
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  value={customerInfo.name}
-                  onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={customerInfo.email}
-                  onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
-                <input
-                  type="tel"
-                  placeholder="Phone Number (10 digits)"
-                  value={customerInfo.phone}
-                  onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                />
               </div>
-            </div>
-
-            {/* Payment Method */}
-            <div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Payment Method</h3>
-              <div className="space-y-3">
-                <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="khalti"
-                    checked={paymentMethod === "khalti"}
-                    onChange={() => setPaymentMethod("khalti")}
-                    className="form-radio text-indigo-600 h-5 w-5"
-                  />
-                  <span className="flex-grow">Khalti</span>
-                  <div className="w-12 h-8 bg-purple-600 rounded flex items-center justify-center text-white font-bold text-sm">Khalti</div>
-                </label>
-                <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="cash"
-                    checked={paymentMethod === "cash"}
-                    onChange={() => setPaymentMethod("cash")}
-                    className="form-radio text-indigo-600 h-5 w-5"
-                  />
-                  <span className="flex-grow">Cash In Hand</span>
-                  <div className="w-12 h-8 bg-green-600 rounded flex items-center justify-center text-white font-bold text-sm">Cash</div>
-                </label>
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="p-4 bg-red-100 border border-red-200 rounded-lg flex items-center">
-                <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                <span className="text-red-700">{error}</span>
-              </div>
-            )}
-
-            {/* Payment Button */}
-            <button
-              onClick={handlePayment}
-              className={`w-full text-white px-6 py-3 rounded-lg text-lg font-semibold transition-all duration-300 flex items-center justify-center ${
-                loading
-                  ? "bg-yellow-500 cursor-not-allowed"
-                  : paymentStatus === "success"
-                  ? "bg-green-500 cursor-not-allowed"
-                  : "bg-indigo-600 hover:bg-indigo-700 shadow-md hover:shadow-lg transform hover:-translate-y-1"
-              }`}
-              disabled={loading || paymentStatus === "success" || !worker || !bookingData}
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : paymentStatus === "success" ? (
-                <>
-                  <CheckCircle className="mr-2 h-5 w-5" />
-                  Payment Successful
-                </>
-              ) : (
-                `Pay with ${paymentMethod === "khalti" ? "Khalti" : "Cash In Hand"}`
-              )}
-            </button>
-
-            {/* Payment Success Message */}
-            {paymentStatus === "success" && (
-              <div className="p-4 bg-green-100 border border-green-200 rounded-lg flex items-center">
-                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                <span className="text-green-700">Your payment was successful. Thank you for your booking!</span>
-              </div>
-            )}
-
-            {/* Security Message */}
-            <div className="text-center text-sm text-gray-500 flex items-center justify-center">
-              <Lock className="h-4 w-4 mr-1" />
-              Your payment is secure and encrypted
             </div>
           </div>
         </div>
-      </main>
-
-      <Footer />
+      </div>
     </div>
   );
 };

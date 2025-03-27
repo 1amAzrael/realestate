@@ -152,7 +152,7 @@ function Listing() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 pt-20">
         <div className="w-16 h-16 border-t-4 border-blue-600 border-solid rounded-full animate-spin mb-4"></div>
         <p className="text-gray-600 text-lg">Loading property details...</p>
       </div>
@@ -161,7 +161,7 @@ function Listing() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4 pt-20">
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded max-w-md w-full mb-4">
           <p className="font-bold">Error</p>
           <p>{error}</p>
@@ -178,7 +178,7 @@ function Listing() {
 
   if (!listing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-20">
         <div className="text-center p-8 max-w-md">
           <div className="w-20 h-20 mx-auto mb-6 bg-gray-200 rounded-full flex items-center justify-center">
             <FaInfo className="text-gray-400 text-2xl" />
@@ -223,10 +223,10 @@ function Listing() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
+    <div className="min-h-screen bg-gray-50 pb-12 pt-20">
       {/* Hero Section with Image Slider */}
       <div className="relative bg-white">
-        <div className="max-w-5xl mx-auto px-4 pt-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           {/* Back button */}
           <button 
             onClick={() => navigate(-1)} 
@@ -243,7 +243,7 @@ function Listing() {
                   <img 
                     src={url} 
                     alt={`${listing.name} - image ${index + 1}`} 
-                    className="w-full h-64 object-cover"
+                    className="w-full h-80 object-cover"
                   />
                 </div>
               ))}
@@ -259,7 +259,7 @@ function Listing() {
                     src={url}
                     alt={`Thumbnail ${index + 1}`}
                     onClick={() => handleThumbnailClick(index)}
-                    className={`h-12 w-16 object-cover rounded-md cursor-pointer border-2 transition-all duration-200 ${
+                    className={`h-16 w-24 object-cover rounded-md cursor-pointer border-2 transition-all duration-200 ${
                       currentSlide === index ? 'border-blue-500 opacity-100' : 'border-transparent opacity-70 hover:opacity-100'
                     }`}
                   />
@@ -271,17 +271,17 @@ function Listing() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-5xl mx-auto px-4 mt-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column: Details */}
           <div className="lg:col-span-2 space-y-6">
             {/* Property Header */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-start">
                 <div>
-                  <div className="flex items-center">
+                  <div className="flex flex-wrap items-center gap-3">
                     <h1 className="text-2xl font-bold text-gray-900">{listing.name}</h1>
-                    <span className={`ml-3 px-2 py-0.5 text-xs font-bold uppercase rounded-full 
+                    <span className={`px-2 py-0.5 text-xs font-bold uppercase rounded-full 
                       ${listing.type === 'rent' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}
                     >
                       {listing.type === 'rent' ? 'For Rent' : 'For Sale'}
@@ -330,29 +330,54 @@ function Listing() {
               <FeatureCard icon={<FaCouch />} value={listing.furnished ? 'Yes' : 'No'} label="Furnished" color="indigo" />
             </div>
             
-            {/* Description */}
+            {/* Property Description and Details in the same section */}
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Description</h2>
-              <div className="relative">
-                <p className={`text-gray-700 leading-relaxed ${!showFullDescription && 'line-clamp-4'}`}>
-                  {listing.description}
-                </p>
-                {listing.description.length > 200 && (
-                  <button
-                    onClick={() => setShowFullDescription(!showFullDescription)}
-                    className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    {showFullDescription ? 'Show less' : 'Read more'}
-                  </button>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                {/* Description - takes 3 columns */}
+                <div className="md:col-span-3">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Description</h2>
+                  <div className="relative">
+                    <p className={`text-gray-700 leading-relaxed ${!showFullDescription && 'line-clamp-4'}`}>
+                      {listing.description}
+                    </p>
+                    {listing.description.length > 200 && (
+                      <button
+                        onClick={() => setShowFullDescription(!showFullDescription)}
+                        className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        {showFullDescription ? 'Show less' : 'Read more'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Details - takes 2 columns */}
+                <div className="md:col-span-2">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Property Details</h2>
+                  <ul className="space-y-3">
+                    <PropertyDetail label="Type" value={listing.type === 'rent' ? 'For Rent' : 'For Sale'} />
+                    <PropertyDetail label="Price" value={`$${listing.offer ? listing.discountPrice.toLocaleString() : listing.price.toLocaleString()}`} />
+                    <PropertyDetail label="Bedrooms" value={listing.bedrooms} />
+                    <PropertyDetail label="Bathrooms" value={listing.bathrooms} />
+                    <PropertyDetail label="Furnished" value={listing.furnished ? 'Yes' : 'No'} />
+                    <PropertyDetail label="Parking" value={listing.parking ? 'Yes' : 'No'} />
+                    {listing.offer && (
+                      <PropertyDetail 
+                        label="Discount" 
+                        value={`$${(listing.price - listing.discountPrice).toLocaleString()}`} 
+                        highlight={true} 
+                      />
+                    )}
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
           
           {/* Right Column: Price & Booking */}
-          <div className="space-y-6">
+          <div className="lg:col-span-1 space-y-6">
             {/* Price Card */}
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
               <div className="mb-4">
                 {listing.offer ? (
                   <>
@@ -443,26 +468,6 @@ function Listing() {
                   <span className="text-orange-800">This is your property</span>
                 </div>
               )}
-            </div>
-            
-            {/* Property Details Summary */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="font-semibold text-gray-800 mb-4">Property Details</h3>
-              <ul className="space-y-3">
-  <PropertyDetail label="Type" value={listing.type === 'rent' ? 'For Rent' : 'For Sale'} />
-  <PropertyDetail label="Price" value={`$${listing.offer ? listing.discountPrice.toLocaleString() : listing.price.toLocaleString()}`} />
-  <PropertyDetail label="Bedrooms" value={listing.bedrooms} />
-  <PropertyDetail label="Bathrooms" value={listing.bathrooms} />
-  <PropertyDetail label="Furnished" value={listing.furnished ? 'Yes' : 'No'} />
-  <PropertyDetail label="Parking" value={listing.parking ? 'Yes' : 'No'} />
-  {listing.offer && (
-    <PropertyDetail 
-      label="Discount" 
-      value={`$${(listing.price - listing.discountPrice).toLocaleString()}`} 
-      highlight={true} 
-    />
-  )}
-</ul>
             </div>
           </div>
         </div>
