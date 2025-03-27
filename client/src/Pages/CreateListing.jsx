@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { 
+  FaHome, FaPencilAlt, FaMapMarkerAlt, FaTag, FaBed, 
+  FaBath, FaParking, FaCouch, FaDollarSign, FaCheck,
+  FaUpload, FaSpinner, FaTimes, FaArrowLeft, FaImages
+} from 'react-icons/fa';
 
 function CreateListing() {
   const navigate = useNavigate();
@@ -24,11 +29,13 @@ function CreateListing() {
 
   // State for image URLs returned from Cloudinary
   const [imageUrls, setImageUrls] = useState([]);
-  // State for file selection (optional)
+  // State for file selection
   const [files, setFiles] = useState([]);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState(null);
+  
   const { currentUser } = useSelector((state) => state.user);
 
   // Simplified change handler using event destructuring
@@ -45,28 +52,53 @@ function CreateListing() {
     const selectedFiles = e.target.files;
     setFiles(selectedFiles);
     const filesArray = Array.from(selectedFiles);
+    
+    if (filesArray.length > 0 && filesArray.length + imageUrls.length <= 6) {
+      setImageUploadError(null);
+      setUploadingImages(true);
+      
+      try {
+        const uploadPromises = filesArray.map((file) => {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', 'my_unsigned_preset');
+          return axios
+            .post(`https://api.cloudinary.com/v1_1/azrael21/image/upload`, formData)
+            .then((res) => res.data.secure_url);
+        });
 
-    try {
-      const uploadPromises = filesArray.map((file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'my_unsigned_preset');
-        return axios
-          .post(`https://api.cloudinary.com/v1_1/azrael21/image/upload`, formData)
-          .then((res) => res.data.secure_url);
-      });
-
-      const urls = await Promise.all(uploadPromises);
-      setImageUrls(urls);
-      console.log('Uploaded image URLs:', urls);
-    } catch (error) {
-      console.error('Error uploading images:', error);
+        const urls = await Promise.all(uploadPromises);
+        setImageUrls((prevUrls) => [...prevUrls, ...urls]);
+        setUploadingImages(false);
+      } catch (error) {
+        setImageUploadError('Error uploading images. Please try again.');
+        setUploadingImages(false);
+      }
+    } else {
+      setImageUploadError('You can upload a maximum of 6 images per listing');
     }
+  };
+
+  // Handle image removal
+  const handleRemoveImage = (index) => {
+    setImageUrls(imageUrls.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     try {
+      // Validate form
+      if (imageUrls.length === 0) {
+        setError('Please upload at least one image');
+        return;
+      }
+      
+      if (+listingData.price < +listingData.discountPrice) {
+        setError('Discount price must be lower than regular price');
+        return;
+      }
+      
       setLoading(true);
       setError(false);
 
@@ -77,13 +109,14 @@ function CreateListing() {
         },
         body: JSON.stringify({
           ...listingData,
-          imageURL: imageUrls, // Include uploaded images
+          imageURL: imageUrls,
           userRef: currentUser._id,
         }),
       });
 
       const data = await res.json();
       setLoading(false);
+      
       if (data.success === false) {
         setError(data.message);
       } else {
@@ -96,206 +129,347 @@ function CreateListing() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
-      <div className="bg-white rounded-xl shadow-lg p-10 w-full max-w-6xl">
-        <h1 className="text-4xl font-bold text-center text-gray-800 mb-10">
-          Create Listing
-        </h1>
-        <form className="grid grid-cols-1 md:grid-cols-3 gap-8" onSubmit={handleSubmit}>
-          {/* Left Column: Name, Description, Address */}
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                placeholder="Listing Name"
-                value={listingData.name}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                id="description"
-                placeholder="Enter a description"
-                rows="4"
-                value={listingData.description}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
-              ></textarea>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Address
-              </label>
-              <input
-                type="text"
-                id="address"
-                placeholder="123 Main St, City"
-                value={listingData.address}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
-              />
-            </div>
-          </div>
-
-          {/* Middle Column: Checkboxes & Image Upload */}
-          <div className="flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="furnished"
-                  checked={listingData.furnished}
-                  onChange={handleChange}
-                  className="w-5 h-5 text-green-500 focus:ring-green-500 border-gray-300 rounded"
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 pt-24 pb-12 px-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header Section */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8 border border-gray-100">
+          <div className="relative px-6 py-8 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              {[...Array(15)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute rounded-full bg-white"
+                  style={{
+                    width: `${Math.random() * 20 + 5}px`,
+                    height: `${Math.random() * 20 + 5}px`,
+                    top: `${Math.random() * 100}%`,
+                    left: `${Math.random() * 100}%`,
+                    opacity: Math.random() * 0.5 + 0.1
+                  }}
                 />
-                <label htmlFor="furnished" className="ml-2 text-sm font-medium text-gray-700">
-                  Furnished
-                </label>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="parking"
-                  checked={listingData.parking}
-                  onChange={handleChange}
-                  className="w-5 h-5 text-green-500 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <label htmlFor="parking" className="ml-2 text-sm font-medium text-gray-700">
-                  Parking
-                </label>
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="offer"
-                  checked={listingData.offer}
-                  onChange={handleChange}
-                  className="w-5 h-5 text-green-500 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <label htmlFor="offer" className="ml-2 text-sm font-medium text-gray-700">
-                  Offer
-                </label>
-              </div>
+              ))}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Upload Image
-              </label>
-              <input
-                type="file"
-                className="w-full text-gray-700"
-                multiple
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-              {imageUrls.length > 0 && (
-                <div className="mt-4 grid grid-cols-3 gap-4">
-                  {imageUrls.map((url, index) => (
-                    <img
-                      key={index}
-                      src={url}
-                      alt={`Listing Image ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-md"
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right Column: Price, Discount Price, Bathrooms, Bedrooms, Type */}
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Price
-              </label>
-              <input
-                type="number"
-                id="price"
-                placeholder="Price"
-                value={listingData.price}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Discount Price
-              </label>
-              <input
-                type="number"
-                id="discountPrice"
-                placeholder="Discount Price"
-                value={listingData.discountPrice}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bathrooms
-                </label>
-                <input
-                  type="number"
-                  id="bathrooms"
-                  placeholder="Bathrooms"
-                  value={listingData.bathrooms}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bedrooms
-                </label>
-                <input
-                  type="number"
-                  id="bedrooms"
-                  placeholder="Bedrooms"
-                  value={listingData.bedrooms}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type
-              </label>
-              <select
-                id="type"
-                value={listingData.type}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400"
+            
+            <div className="relative z-10">
+              <button
+                onClick={() => navigate(-1)}
+                className="mb-4 bg-white/20 backdrop-blur-sm text-white p-2 rounded-lg hover:bg-white/30 transition-colors flex items-center"
               >
-                <option value="">Select type</option>
-                <option value="rent">Rent</option>
-                <option value="sale">Sale</option>
-              </select>
+                <FaArrowLeft className="mr-2" /> Back
+              </button>
+              
+              <div className="flex items-center">
+                <div className="bg-white/20 backdrop-blur-sm p-3 rounded-lg mr-4">
+                  <FaHome className="text-white h-6 w-6" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold mb-1">Create New Listing</h1>
+                  <p className="text-blue-100">Add your property details to get started</p>
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
+        
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg flex items-start">
+            <FaTimes className="text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+            <p className="text-red-700">{error}</p>
+          </div>
+        )}
+        
+        {/* Main Form */}
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Left Column: Basic Info */}
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <FaPencilAlt className="mr-2 text-blue-500" />
+                  Property Name
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  placeholder="Cozy Downtown Apartment"
+                  value={listingData.name}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <FaPencilAlt className="mr-2 text-blue-500" />
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  placeholder="Describe your property..."
+                  rows="6"
+                  value={listingData.description}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                ></textarea>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <FaMapMarkerAlt className="mr-2 text-blue-500" />
+                  Address
+                </label>
+                <input
+                  type="text"
+                  id="address"
+                  placeholder="123 Main St, City, Country"
+                  value={listingData.address}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Middle Column: Property Features */}
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <FaTag className="mr-2 text-blue-500" />
+                  Property Type
+                </label>
+                <select
+                  id="type"
+                  value={listingData.type}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                >
+                  <option value="">Select type</option>
+                  <option value="rent">For Rent</option>
+                  <option value="sale">For Sale</option>
+                </select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <FaBed className="mr-2 text-blue-500" />
+                    Bedrooms
+                  </label>
+                  <input
+                    type="number"
+                    id="bedrooms"
+                    min="1"
+                    value={listingData.bedrooms}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <FaBath className="mr-2 text-blue-500" />
+                    Bathrooms
+                  </label>
+                  <input
+                    type="number"
+                    id="bathrooms"
+                    min="1"
+                    value={listingData.bathrooms}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
+                
+                <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    id="parking"
+                    checked={listingData.parking}
+                    onChange={handleChange}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="parking" className="ml-3 flex items-center text-gray-700">
+                    <FaParking className="mr-2 text-blue-500" />
+                    Parking Available
+                  </label>
+                </div>
+                
+                <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    id="furnished"
+                    checked={listingData.furnished}
+                    onChange={handleChange}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="furnished" className="ml-3 flex items-center text-gray-700">
+                    <FaCouch className="mr-2 text-blue-500" />
+                    Furnished
+                  </label>
+                </div>
+                
+                <div className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    id="offer"
+                    checked={listingData.offer}
+                    onChange={handleChange}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="offer" className="ml-3 flex items-center text-gray-700">
+                    <FaTag className="mr-2 text-blue-500" />
+                    Special Offer
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Pricing and Images */}
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                    <FaDollarSign className="mr-2 text-blue-500" />
+                    Regular Price
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaDollarSign className="text-gray-400" />
+                    </div>
+                    <input
+                      type="number"
+                      id="price"
+                      placeholder="Price"
+                      min="0"
+                      value={listingData.price}
+                      onChange={handleChange}
+                      required
+                      className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
+                </div>
+                
+                {listingData.offer && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <FaTag className="mr-2 text-green-500" />
+                      Discounted Price
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FaDollarSign className="text-gray-400" />
+                      </div>
+                      <input
+                        type="number"
+                        id="discountPrice"
+                        placeholder="Discounted Price"
+                        min="0"
+                        value={listingData.discountPrice}
+                        onChange={handleChange}
+                        required={listingData.offer}
+                        className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <FaImages className="mr-2 text-blue-500" />
+                  Images (Max 6)
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors">
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    id="imageUpload"
+                  />
+                  <label htmlFor="imageUpload" className="cursor-pointer block">
+                    <FaUpload className="mx-auto text-gray-400 mb-2 h-10 w-10" />
+                    <p className="text-gray-500">
+                      Click to upload property images
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Supported formats: JPG, PNG, WEBP
+                    </p>
+                  </label>
+                </div>
+                
+                {uploadingImages && (
+                  <div className="mt-2 flex items-center justify-center text-blue-500">
+                    <FaSpinner className="animate-spin mr-2" />
+                    <span>Uploading images...</span>
+                  </div>
+                )}
+                
+                {imageUploadError && (
+                  <p className="text-red-500 text-sm mt-2">{imageUploadError}</p>
+                )}
+                
+                {imageUrls.length > 0 && (
+                  <div className="mt-4 grid grid-cols-3 gap-3">
+                    {imageUrls.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Property ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg shadow-md"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <FaTimes />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-10 border-t border-gray-200 pt-6 flex justify-center">
+            <button
+              type="submit"
+              disabled={loading || uploadingImages}
+              className={`px-8 py-3 rounded-lg text-white font-medium flex items-center justify-center space-x-2 
+                ${(loading || uploadingImages) 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-lg transform hover:-translate-y-0.5 transition-all'}`}
+            >
+              {loading ? (
+                <>
+                  <FaSpinner className="animate-spin mr-2" />
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <>
+                  <FaCheck className="mr-2" />
+                  <span>Create Listing</span>
+                </>
+              )}
+            </button>
           </div>
         </form>
-        <div className="mt-10 text-center">
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            className="px-10 py-3 bg-gray-800 text-white font-semibold rounded-md hover:bg-gray-700 transition"
-          >
-            {loading ? 'Creating...' : 'Create Listing'}
-          </button>
-          {error && <p className="mt-2 text-red-500">{error}</p>}
-        </div>
       </div>
-    </main>
+    </div>
   );
 }
 

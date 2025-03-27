@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Users, Briefcase, Clock, DollarSign, ChevronRight, Star, MapPin, Calendar, Phone, User } from 'lucide-react';
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+
 const HrPage = () => {
   const [workers, setWorkers] = useState([]); // State to store workers fetched from the database
   
@@ -25,7 +26,15 @@ const HrPage = () => {
           throw new Error("Failed to fetch workers");
         }
         const data = await res.json();
-        setWorkers(data.workers); // Update the workers state with fetched data
+        
+        // Ensure rate is a number and has a default
+        const processedWorkers = data.workers.map(worker => ({
+          ...worker,
+          rate: parseFloat(worker.rate) || 0,
+          rateDisplay: worker.rate ? `NPR ${parseFloat(worker.rate).toLocaleString()}` : 'Rate not specified'
+        }));
+        
+        setWorkers(processedWorkers);
       } catch (error) {
         console.error("Error fetching workers:", error);
       }
@@ -35,7 +44,10 @@ const HrPage = () => {
   }, []);
 
   const handleHireNow = (worker) => {
-    setSelectedWorker(worker);
+    setSelectedWorker({
+      ...worker,
+      rate: parseFloat(worker.rate) || 0
+    });
     setBookingStep(1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -52,8 +64,6 @@ const HrPage = () => {
         userId: currentUser._id,
       };
 
-      console.log("Submitting form data:", requestBody); // Debugging
-
       const res = await fetch("/api/shiftingRequest/create", {
         method: "POST",
         headers: {
@@ -69,8 +79,7 @@ const HrPage = () => {
       }
 
       const data = await res.json();
-      console.log("Shifting request submitted:", data); // Debugging
-      setBookingStep(2); // Move to the next step
+      setBookingStep(2);
     } catch (error) {
       console.error("Error submitting shifting request:", error);
     }
@@ -81,7 +90,20 @@ const HrPage = () => {
   };
 
   const handleConfirmShifting = () => {
-    navigate("/payment", { state: { worker: selectedWorker, bookingData } });
+    // Ensure rate is a number before navigation
+    const processedWorker = {
+      ...selectedWorker,
+      rate: parseFloat(selectedWorker.rate) || 0
+    };
+    
+    console.log("Navigating with worker data:", processedWorker);
+    
+    navigate("/payment", { 
+      state: { 
+        worker: processedWorker, 
+        bookingData 
+      } 
+    });
   };
 
   const handleBackToWorkers = () => {

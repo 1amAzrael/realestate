@@ -1,40 +1,39 @@
+//src/Pages/PaymentPage.jsx
 import React, { useState, useEffect } from "react";
 import { CreditCard, Calendar, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 import { useLocation, useNavigate } from "react-router-dom";
 import { Footer } from "../Component/Footer";
-// Make sure the path is correct based on your file structure
 import { initiateKhaltiPayment } from './khaltiService.js';
 
 const PaymentPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { worker, bookingData } = location.state || {}; // Retrieve worker and booking data from state
+  const { worker, bookingData } = location.state || {};
 
   const [paymentMethod, setPaymentMethod] = useState("khalti");
   const [paymentStatus, setPaymentStatus] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  // Add state for customer info
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
     email: '',
     phone: ''
   });
 
-  // Check if worker and bookingData are available
+  const parseRate = (rate) => {
+    if (rate === null || rate === undefined) return 0;
+    if (typeof rate === 'number' && !isNaN(rate)) return rate;
+    const parsedRate = parseFloat(rate);
+    return isNaN(parsedRate) ? 0 : parsedRate;
+  };
+
   useEffect(() => {
-    // Check if worker and bookingData are available
+    console.log("Raw worker data:", worker);
+    console.log("Raw worker rate:", worker?.rate);
+    console.log("Parsed worker rate:", parseRate(worker?.rate));
+
     if (!worker || !bookingData) {
       setError("Missing booking information. Please try again.");
-    } else {
-      console.log("Worker data loaded:", worker);
-      console.log("Booking data loaded:", bookingData);
-
-      // Check if rate is valid
-      if (!worker.rate && worker.rate !== 0) {
-        console.warn("Worker rate is undefined or null:", worker.rate);
-      }
     }
   }, [worker, bookingData]);
 
@@ -52,23 +51,23 @@ const PaymentPage = () => {
           throw new Error('Please fill all customer information fields');
         }
 
-        // Validate phone number format (10 digits)
         const phoneRegex = /^\d{10}$/;
         if (!phoneRegex.test(customerInfo.phone)) {
           throw new Error('Please enter a valid 10-digit phone number');
         }
 
-        // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(customerInfo.email)) {
           throw new Error('Please enter a valid email address');
         }
 
-        // Save booking data to localStorage for retrieval after payment
+        const rate = parseRate(worker?.rate);
+        const finalRate = rate > 0 ? rate : 1000;
+
         localStorage.setItem('pending_booking', JSON.stringify({
           workerName: worker?.name || 'Unknown',
           workerId: worker?.id || 'unknown-id',
-          rate: worker?.rate || 0,
+          rate: finalRate,
           date: bookingData?.shiftingDate || 'Not specified',
           address: bookingData?.shiftingAddress || 'Not specified',
           customerName: customerInfo.name,
@@ -77,14 +76,6 @@ const PaymentPage = () => {
           timestamp: new Date().toISOString()
         }));
 
-        // Debug worker data
-        console.log("Worker data:", {
-          worker,
-          rate: worker?.rate,
-          typeOfRate: typeof worker?.rate,
-          parsedRate: parseFloat(worker?.rate || 0)
-        });
-
         const purchaseData = {
           name: `Booking for ${worker.name}`,
           customerName: customerInfo.name,
@@ -92,33 +83,9 @@ const PaymentPage = () => {
           customerPhone: customerInfo.phone
         };
 
-        // For debugging: manually set a test amount
-        const TESTING_MODE = true; // Set to false in production
+        // Initiate payment with actual amount
+        const response = await initiateKhaltiPayment(finalRate, purchaseData);
 
-        // Make sure we have a valid numeric amount
-        let rate;
-
-        if (TESTING_MODE) {
-          // Use a fixed test amount for testing (1000 NPR)
-          rate = 1000;
-          console.log("TESTING MODE: Using test amount of 1000 NPR");
-        } else {
-          rate = typeof worker?.rate === 'number' ? worker.rate :
-                 typeof worker?.rate === 'string' ? parseFloat(worker.rate) : 0;
-        }
-
-        if (!rate || isNaN(rate) || rate <= 0) {
-          throw new Error('Invalid payment amount. Please try again with a valid amount.');
-        }
-
-        console.log("Initiating Khalti payment for amount:", rate);
-
-        // Get direct payment URL from our service
-        const response = await initiateKhaltiPayment(rate, purchaseData);
-
-        console.log("Payment initiation response:", response);
-
-        // Redirect to Khalti payment page
         if (response && response.payment_url) {
           window.location.href = response.payment_url;
         } else {
