@@ -4,11 +4,12 @@ import Slider from 'react-slick';
 import { 
   FaBed, FaBath, FaParking, FaCouch, FaStar, FaRegStar, 
   FaUser, FaComment, FaMapMarkerAlt, FaCalendarAlt, FaCheckCircle,
-  FaArrowLeft, FaArrowRight, FaInfo, FaHeart, FaPencilAlt
+  FaArrowLeft, FaArrowRight, FaInfo, FaHeart, FaPencilAlt, FaMap
 } from 'react-icons/fa';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { useSelector } from 'react-redux';
+import ListingMap from '../Component/Map/ListingMap'; // Import the ListingMap component
 
 function Listing() {
   const { currentUser } = useSelector((state) => state.user);
@@ -25,6 +26,7 @@ function Listing() {
   const [selectedRating, setSelectedRating] = useState(0);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showMap, setShowMap] = useState(false); // State to toggle map visibility
   
   const mainSliderRef = useRef(null);
 
@@ -148,6 +150,11 @@ function Listing() {
       console.error('Error submitting review:', error);
       alert('An error occurred while submitting your review');
     }
+  };
+
+  // Toggle map visibility
+  const toggleMap = () => {
+    setShowMap(!showMap);
   };
 
   if (loading) {
@@ -372,6 +379,45 @@ function Listing() {
                 </div>
               </div>
             </div>
+
+            {/* Location Map Section */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">Location</h2>
+                <button
+                  onClick={toggleMap}
+                  className="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <FaMap className="mr-2" />
+                  {showMap ? 'Hide Map' : 'Show Map'}
+                </button>
+              </div>
+              
+              {showMap && (
+                <div className="mt-4">
+                  <ListingMap listing={listing} height="400px" />
+                </div>
+              )}
+              
+              {!showMap && (
+                <div className="bg-gray-100 rounded-lg p-6 flex items-center justify-center min-h-[150px]">
+                  <button
+                    onClick={toggleMap}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                  >
+                    <FaMap className="mr-2" />
+                    Click to View Property on Map
+                  </button>
+                </div>
+              )}
+              
+              <div className="mt-4 text-gray-600">
+                <p className="flex items-center">
+                  <FaMapMarkerAlt className="mr-2 text-blue-500" />
+                  {listing.address}
+                </p>
+              </div>
+            </div>
           </div>
           
           {/* Right Column: Price & Booking */}
@@ -534,92 +580,92 @@ function Listing() {
                   <div className="flex">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
-                        key={star}
-                        type="button"
-                        onClick={() => handleRate(star)}
-                        className="text-xl focus:outline-none mr-1"
-                      >
-                        {star <= selectedRating ? (
-                          <FaStar className="text-yellow-400" />
-                        ) : (
-                          <FaRegStar className="text-gray-300 hover:text-yellow-400" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                      key={star}
+                      type="button"
+                      onClick={() => handleRate(star)}
+                      className="text-xl focus:outline-none mr-1"
+                    >
+                      {star <= selectedRating ? (
+                        <FaStar className="text-yellow-400" />
+                      ) : (
+                        <FaRegStar className="text-gray-300 hover:text-yellow-400" />
+                      )}
+                    </button>
+                  ))}
                 </div>
-                <div>
-                  <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">Your Review</label>
-                  <textarea
-                    id="comment"
-                    value={comment}
-                    onChange={handleCommentChange}
-                    rows="3"
-                    className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="Share your experience with this property..."
-                  ></textarea>
-                </div>
-                <button
-                  onClick={submitReview}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  Submit Review
-                </button>
               </div>
+              <div>
+                <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">Your Review</label>
+                <textarea
+                  id="comment"
+                  value={comment}
+                  onChange={handleCommentChange}
+                  rows="3"
+                  className="w-full p-2.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="Share your experience with this property..."
+                ></textarea>
+              </div>
+              <button
+                onClick={submitReview}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                Submit Review
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
-  );
+  </div>
+);
 }
 
 // Feature Card Component
 const FeatureCard = ({ icon, value, label, color }) => {
-  const colorClasses = {
-    blue: "bg-blue-50 text-blue-600",
-    green: "bg-green-50 text-green-600",
-    purple: "bg-purple-50 text-purple-600",
-    indigo: "bg-indigo-50 text-indigo-600",
-  };
-  
-  return (
-    <div className="bg-white rounded-lg shadow-xs p-3 flex flex-col items-center text-center border border-gray-100 hover:border-blue-200 transition-colors">
-      <div className={`p-2 rounded-full mb-2 ${colorClasses[color]}`}>
-        {icon}
-      </div>
-      <span className="text-lg font-semibold text-gray-800">{value}</span>
-      <span className="text-xs text-gray-500">{label}</span>
+const colorClasses = {
+  blue: "bg-blue-50 text-blue-600",
+  green: "bg-green-50 text-green-600",
+  purple: "bg-purple-50 text-purple-600",
+  indigo: "bg-indigo-50 text-indigo-600",
+};
+
+return (
+  <div className="bg-white rounded-lg shadow-xs p-3 flex flex-col items-center text-center border border-gray-100 hover:border-blue-200 transition-colors">
+    <div className={`p-2 rounded-full mb-2 ${colorClasses[color]}`}>
+      {icon}
     </div>
-  );
+    <span className="text-lg font-semibold text-gray-800">{value}</span>
+    <span className="text-xs text-gray-500">{label}</span>
+  </div>
+);
 };
 
 // Property Detail Component
 const PropertyDetail = ({ label, value, highlight = false }) => {
-  return (
-    <li className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-b-0">
-      <span className="text-gray-600 text-sm">{label}</span>
-      <span className={highlight ? "font-medium text-green-600 text-sm" : "font-medium text-gray-800 text-sm"}>
-        {value}
-      </span>
-    </li>
-  );
+return (
+  <li className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-b-0">
+    <span className="text-gray-600 text-sm">{label}</span>
+    <span className={highlight ? "font-medium text-green-600 text-sm" : "font-medium text-gray-800 text-sm"}>
+      {value}
+    </span>
+  </li>
+);
 };
 
 // Custom slider arrow component
 const SliderArrow = ({ direction, className, onClick }) => {
-  return (
-    <button
-      onClick={onClick}
-      className={`absolute z-10 top-1/2 transform -translate-y-1/2 ${
-        direction === 'next' ? 'right-2' : 'left-2'
-      } bg-white/90 backdrop-blur-sm w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-white ${className}`}
-    >
-      {direction === 'next' ? 
-        <FaArrowRight className="text-blue-600 text-sm" /> : 
-        <FaArrowLeft className="text-blue-600 text-sm" />}
-    </button>
-  );
+return (
+  <button
+    onClick={onClick}
+    className={`absolute z-10 top-1/2 transform -translate-y-1/2 ${
+      direction === 'next' ? 'right-2' : 'left-2'
+    } bg-white/90 backdrop-blur-sm w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-white ${className}`}
+  >
+    {direction === 'next' ? 
+      <FaArrowRight className="text-blue-600 text-sm" /> : 
+      <FaArrowLeft className="text-blue-600 text-sm" />}
+  </button>
+);
 };
 
 export default Listing;

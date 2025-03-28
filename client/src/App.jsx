@@ -21,6 +21,8 @@ import ContactLandlord from './Pages/ContactLandlord';
 import BookingForm from './Component/BookingForm';
 import PaymentVerify from './Pages/PaymentVerify.jsx';
 import PaymentSuccess from './Pages/PaymentSuccess.jsx';
+import MapPage from './Pages/MapPage';
+
 
 
 // Wrapper component to conditionally render Header and Footer
@@ -56,6 +58,7 @@ function App() {
             </Layout>
           }
         />
+
         <Route
           path="/signin"
           element={
@@ -160,6 +163,14 @@ function App() {
           element={
             <Layout>
               <BookingForm />
+            </Layout>
+          }
+        />
+        <Route
+          path="/map"
+          element={
+            <Layout>
+              <MapPage />
             </Layout>
           }
         />

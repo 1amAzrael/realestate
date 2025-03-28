@@ -8,7 +8,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import 'swiper/css'; // Base Swiper styles
 import 'swiper/css/navigation'; // Navigation module styles
 import 'swiper/css/autoplay'; // Autoplay module styles
-
+import 'leaflet/dist/leaflet.css'; // Import Leaflet CSS
 
 
 createRoot(document.getElementById('root')).render(
