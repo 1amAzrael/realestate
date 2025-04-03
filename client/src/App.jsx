@@ -22,6 +22,7 @@ import BookingForm from './Component/BookingForm';
 import PaymentVerify from './Pages/PaymentVerify.jsx';
 import PaymentSuccess from './Pages/PaymentSuccess.jsx';
 import MapPage from './Pages/MapPage';
+import Contact from './Pages/Contact';
 
 
 
@@ -125,6 +126,14 @@ function App() {
               <About />
             </Layout>
           }
+        />
+        <Route
+          path="/contact"
+          element={
+            <Layout>
+              <Contact />
+            </Layout>
+          } 
         />
         <Route
           path="/listing/:listingId"
