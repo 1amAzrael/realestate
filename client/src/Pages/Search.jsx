@@ -268,21 +268,7 @@ export default function Search() {
                 </p>
               </div>
 
-              <div className="flex items-center">
-                <span className="text-gray-600 mr-2">Sort:</span>
-                <select
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 bg-white"
-                  onChange={(e) => {
-                    const [sort, order] = e.target.value.split('_');
-                    setSidebardata({...sidebardata, sort, order});
-                  }}
-                >
-                  <option value="created_at_desc">Newest First</option>
-                  <option value="created_at_asc">Oldest First</option>
-                  <option value="price_desc">Price (High to Low)</option>
-                  <option value="price_asc">Price (Low to High)</option>
-                </select>
-              </div>
+              
             </div>
 
             {loading ? (

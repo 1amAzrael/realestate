@@ -579,7 +579,7 @@ function Listing() {
           </div>
         </div>
 
-        {/* Reviews Section - Now placed below the main content */}
+        {/* Reviews Section - */}
         <div className="mt-8 bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-800">Reviews & Ratings</h2>
