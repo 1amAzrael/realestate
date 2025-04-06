@@ -5,9 +5,9 @@ import {
   FaBed, FaBath, FaParking, FaCouch, FaStar, FaRegStar, 
   FaUser, FaComment, FaMapMarkerAlt, FaCalendarAlt, FaCheckCircle,
   FaArrowLeft, FaArrowRight, FaInfo, FaHeart, FaPencilAlt, FaMap,
-  FaCalendarCheck, FaLock, FaClock, FaExclamationCircle
+  FaCalendarCheck, FaLock, FaClock, FaExclamationCircle, FaTruck
 } from 'react-icons/fa';
-import { format, parseISO, isAfter } from 'date-fns';
+import { format, parseISO, isAfter, isBefore } from 'date-fns';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { useSelector } from 'react-redux';
@@ -29,6 +29,8 @@ function Listing() {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showMap, setShowMap] = useState(false); // State to toggle map visibility
+  const [userBookings, setUserBookings] = useState([]);
+  const [loadingUserBookings, setLoadingUserBookings] = useState(false);
   
   const mainSliderRef = useRef(null);
 
@@ -97,11 +99,56 @@ function Listing() {
     fetchReviews();
   }, [listingId]);
 
+  // Fetch user's bookings for this property
+  useEffect(() => {
+    const fetchUserBookings = async () => {
+      if (!currentUser) return;
+      
+      try {
+        setLoadingUserBookings(true);
+        const res = await fetch(`/api/booking/user/${currentUser._id}`);
+        const data = await res.json();
+        
+        if (data.success === false) {
+          console.error('Failed to load user bookings');
+          setLoadingUserBookings(false);
+          return;
+        }
+        
+        // Filter bookings for this specific property
+        const propertyBookings = (data.bookings || data).filter(booking => 
+          booking.listingId?._id === listingId || booking.listingId === listingId
+        );
+        
+        setUserBookings(propertyBookings);
+        setLoadingUserBookings(false);
+      } catch (err) {
+        console.error('Error fetching user bookings:', err);
+        setLoadingUserBookings(false);
+      }
+    };
+
+    fetchUserBookings();
+  }, [currentUser, listingId]);
+
   const handleContactLandlord = () => {
     navigate(`/contact-landlord/${listingId}`);
   };
 
   const handleBookNow = () => {
+    if (!currentUser) {
+      navigate('/signin');
+      return;
+    }
+    
+    // Check if user already has an approved booking for this property
+    const hasApprovedBooking = userBookings.some(booking => booking.status === 'approved');
+    
+    if (hasApprovedBooking) {
+      alert("You already have an approved booking for this property.");
+      return;
+    }
+    
     navigate(`/book/${listing._id}`);
   };
 
@@ -172,6 +219,90 @@ function Listing() {
     setShowMap(!showMap);
   };
 
+  // Check if the user has an active booking
+  const getUserBookingStatus = () => {
+    if (!userBookings || userBookings.length === 0) return null;
+    
+    // Get the most recent approved booking
+    const approvedBooking = userBookings
+      .filter(booking => booking.status === 'approved')
+      .sort((a, b) => new Date(b.preferredDate) - new Date(a.preferredDate))[0];
+      
+    if (approvedBooking) {
+      return {
+        status: 'approved',
+        date: approvedBooking.preferredDate,
+        bookingId: approvedBooking._id
+      };
+    }
+    
+    // Get the most recent pending booking
+    const pendingBooking = userBookings
+      .filter(booking => booking.status === 'pending')
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+      
+    if (pendingBooking) {
+      return {
+        status: 'pending',
+        date: pendingBooking.preferredDate,
+        bookingId: pendingBooking._id
+      };
+    }
+    
+    return null;
+  };
+
+  // Get the booking status display
+  const getBookingStatusDisplay = () => {
+    const userBookingStatus = getUserBookingStatus();
+    
+    if (userBookingStatus && userBookingStatus.status === 'approved') {
+      return (
+        <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg flex items-start mb-6">
+          <FaCheckCircle className="text-green-600 mt-0.5 mr-3 flex-shrink-0" />
+          <div>
+            <p className="text-green-800 font-semibold">You've booked this property!</p>
+            <p className="text-green-700 mt-1">Your visit is scheduled for {formatDate(userBookingStatus.date)}</p>
+            <div className="mt-3">
+              <button
+                onClick={handleBookHR}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <FaTruck className="mr-2" />
+                Book HR Services for Moving
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    } else if (userBookingStatus && userBookingStatus.status === 'pending') {
+      return (
+        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg flex items-start mb-6">
+          <FaClock className="text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+          <div>
+            <p className="text-yellow-800 font-semibold">Your booking is pending approval</p>
+            <p className="text-yellow-700 mt-1">Requested visit date: {formatDate(userBookingStatus.date)}</p>
+            <p className="text-yellow-700 mt-1">The property owner will review your booking request soon.</p>
+          </div>
+        </div>
+      );
+    } else if (isPropertyBooked && !isUserBooking) {
+      return (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg flex items-start mb-6">
+          <FaLock className="text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+          <div>
+            <p className="text-red-800 font-semibold">This property is currently booked</p>
+            {nextAvailableDate && (
+              <p className="text-red-700 mt-1">Next available after: {nextAvailableDate}</p>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 pt-20">
@@ -237,6 +368,21 @@ function Listing() {
   const handleThumbnailClick = (index) => {
     setCurrentSlide(index);
     mainSliderRef.current.slickGoTo(index);
+  };
+
+  // Check if user can book this property
+  const canUserBookProperty = () => {
+    if (!currentUser) return true; // Will redirect to login
+    if (isOwner) return false; // Owner can't book their own property
+    
+    // User already has an approved booking
+    const userBookingStatus = getUserBookingStatus();
+    if (userBookingStatus && userBookingStatus.status === 'approved') return false;
+    
+    // Property is booked by someone else
+    if (isPropertyBooked && !isUserBooking) return false;
+    
+    return true;
   };
 
   return (
@@ -338,6 +484,9 @@ function Listing() {
                 </div>
               </div>
             </div>
+            
+            {/* Booking Status Banner */}
+            {getBookingStatusDisplay()}
             
             {/* Key Features */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -466,115 +615,53 @@ function Listing() {
                 )}
               </div>
               
-              {/* Property Availability Status Banner */}
-              {isUserBooking && (
-                <div className="mt-4 mb-2 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start">
-                  <FaCalendarCheck className="text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                  <div>
-                    <p className="text-green-800 font-medium">You've booked this property</p>
-                    <p className="text-sm text-green-700 mt-1">
-                      Your visit date: {formatDate(listing.userBooking.bookingDate)}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {isPropertyBooked && !isUserBooking && (
-                <div className="mt-4 mb-2 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start">
-                  <FaLock className="text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
-                  <div>
-                    <p className="text-amber-800 font-medium">This property is currently booked</p>
-                    {nextAvailableDate && (
-                      <p className="text-sm text-amber-700 mt-1">
-                        Booked until: {nextAvailableDate}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-              {!isPropertyBooked && !isUserBooking && !isOwner && (
-                <div className="mt-4 mb-2 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start">
-                  <FaClock className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
-                  <div>
-                    <p className="text-blue-800 font-medium">This property is available</p>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Book now to secure your preferred date
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              <div className="border-t border-gray-100 pt-4 mb-4">
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="text-center p-2 bg-gray-50 rounded-lg">
-                    <FaBed className="mx-auto text-blue-500 mb-1" />
-                    <span className="block text-xs text-gray-500">Beds</span>
-                    <span className="font-medium text-sm">{listing.bedrooms}</span>
-                  </div>
-                  <div className="text-center p-2 bg-gray-50 rounded-lg">
-                    <FaBath className="mx-auto text-green-500 mb-1" />
-                    <span className="block text-xs text-gray-500">Baths</span>
-                    <span className="font-medium text-sm">{listing.bathrooms}</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Modify the booking buttons section */}
-              {!isOwner && !isUserBooking && (
-                <button
-                  onClick={handleBookNow}
-                  className={`w-full py-2.5 px-4 rounded-lg font-medium hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center
-                    ${isPropertyBooked 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-blue-600 text-white'}`}
-                  disabled={isPropertyBooked}
-                >
-                  <FaCalendarAlt className="inline mr-2" />
-                  {isPropertyBooked 
-                    ? 'Currently Unavailable' 
-                    : (listing.type === 'rent' ? 'Book Viewing' : 'Request Purchase')}
-                </button>
-              )}
-              
-              {isPropertyBooked && !isUserBooking && !isOwner && (
-                <div className="mt-2 text-center text-sm text-gray-500">
-                  <FaExclamationCircle className="inline mr-1" />
-                  This property is booked until {nextAvailableDate}
-                </div>
-              )}
-              
-              {!isOwner && (
-                <button
-                  onClick={handleContactLandlord}
-                  className="w-full mt-2 py-2.5 px-4 bg-white border border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-all"
-                >
-                  <FaUser className="inline mr-2" />
-                  Contact Landlord
-                </button>
-              )}
-              
-              {!isOwner && isBooked && (
-                <div className="mt-4 space-y-3">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start text-sm">
-                    <FaCheckCircle className="text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                    <span className="text-green-800">You have already booked this property</span>
-                  </div>
-                  
+              {/* Booking Actions */}
+              <div className="space-y-4 mt-6">
+                {!isOwner && canUserBookProperty() && (
                   <button
-                    onClick={handleBookHR}
-                    className="w-full py-2.5 px-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-all shadow-sm"
+                    onClick={handleBookNow}
+                    className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center"
+                  >
+                    <FaCalendarAlt className="mr-2" />
+                    {listing.type === 'rent' ? 'Book Viewing' : 'Request Purchase'}
+                  </button>
+                )}
+                
+                {isPropertyBooked && !isUserBooking && !isOwner && (
+                  <div className="text-center text-sm text-red-500 mt-2">
+                    <FaExclamationCircle className="inline mr-1" />
+                    This property is booked until {nextAvailableDate}
+                  </div>
+                )}
+                
+                {!isOwner && (
+                  <button
+                    onClick={handleContactLandlord}
+                    className="w-full py-3 px-4 bg-white border border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
                   >
                     <FaUser className="inline mr-2" />
-                    Book HR Services
+                    Contact Landlord
                   </button>
-                </div>
-              )}
-              
-              {isOwner && (
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-start text-sm">
-                  <FaInfo className="text-orange-500 mt-0.5 mr-2 flex-shrink-0" />
-                  <span className="text-orange-800">This is your property</span>
-                </div>
-              )}
+                )}
+                
+                {/* Only show the HR services button if the user has an approved booking */}
+                {getUserBookingStatus()?.status === 'approved' && (
+                  <button
+                    onClick={handleBookHR}
+                    className="w-full py-3 px-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors shadow-md flex items-center justify-center"
+                  >
+                    <FaTruck className="mr-2" />
+                    Book Moving Services
+                  </button>
+                )}
+                
+                {isOwner && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-start text-sm">
+                    <FaInfo className="text-orange-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <span className="text-orange-800">This is your property</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
