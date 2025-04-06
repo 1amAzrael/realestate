@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   FaCalendarAlt, FaSearch, FaFilter, FaSortAmountDown, 
-  FaCheckCircle, FaTimesCircle, FaSpinner, FaEdit, 
   FaEye, FaHome, FaUser, FaMapMarkerAlt, FaCalendarCheck, 
-  FaCalendarTimes, FaExclamationCircle
+  FaEdit, FaExclamationCircle, FaCheck, FaTimes, FaClock
 } from "react-icons/fa";
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 const AdminBookingManagement = () => {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,11 +20,11 @@ const AdminBookingManagement = () => {
     dateRange: { startDate: "", endDate: "" },
     propertyId: "",
     userId: "",
-    status: "all"
+    status: ""
   });
   
   // Sorting states
-  const [sortCriteria, setSortCriteria] = useState("createdAt");
+  const [sortCriteria, setSortCriteria] = useState("preferredDate");
   const [sortOrder, setSortOrder] = useState("desc");
   
   // UI states
@@ -60,8 +61,20 @@ const AdminBookingManagement = () => {
           throw new Error(usersData.message || "Failed to fetch users");
         }
         
+        // Process bookings to include property and user information
+        const processedBookings = bookingsData.map(booking => {
+          const property = propertiesData.find(p => p._id === booking.listingId);
+          const user = usersData.find(u => u._id === booking.userId);
+          
+          return {
+            ...booking,
+            property: property || null,
+            user: user || null
+          };
+        });
+        
         // Set state with fetched data
-        setBookings(bookingsData);
+        setBookings(processedBookings);
         setProperties(propertiesData);
         setUsers(usersData);
         setLoading(false);
@@ -74,37 +87,6 @@ const AdminBookingManagement = () => {
     
     fetchData();
   }, []);
-  
-  // Helper function to update booking status
-  const updateBookingStatus = async (bookingId, newStatus) => {
-    try {
-      const res = await fetch(`/api/booking/${bookingId}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to update booking status");
-      }
-      
-      // Update local state with the new status
-      setBookings(prevBookings => 
-        prevBookings.map(booking => 
-          booking._id === bookingId ? { ...booking, status: newStatus } : booking
-        )
-      );
-      
-      return true;
-    } catch (err) {
-      console.error("Error updating booking status:", err);
-      return false;
-    }
-  };
   
   // Filter bookings based on current filters and search query
   const getFilteredBookings = () => {
@@ -131,22 +113,22 @@ const AdminBookingManagement = () => {
       }
       
       // Filter by status
-      if (filters.status !== "all" && booking.status !== filters.status) {
+      if (filters.status && booking.status !== filters.status) {
         return false;
       }
       
-      // Search by booking ID, property name, or user name
+      // Search by property name, or user name
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const property = properties.find(p => p._id === booking.listingId);
-        const user = users.find(u => u._id === booking.userId);
+        const property = booking.property;
+        const user = booking.user;
         
-        const bookingIdMatch = booking._id.toLowerCase().includes(query);
-        const propertyMatch = property && property.name.toLowerCase().includes(query);
-        const userMatch = user && user.username.toLowerCase().includes(query);
+        const propertyMatch = property && property.name && property.name.toLowerCase().includes(query);
+        const userMatch = user && user.username && user.username.toLowerCase().includes(query);
         const addressMatch = booking.address && booking.address.toLowerCase().includes(query);
+        const nameMatch = booking.name && booking.name.toLowerCase().includes(query);
         
-        return bookingIdMatch || propertyMatch || userMatch || addressMatch;
+        return propertyMatch || userMatch || addressMatch || nameMatch;
       }
       
       return true;
@@ -169,13 +151,9 @@ const AdminBookingManagement = () => {
           valueA = new Date(a.preferredDate);
           valueB = new Date(b.preferredDate);
           break;
-        case "status":
-          valueA = a.status;
-          valueB = b.status;
-          break;
         default:
-          valueA = a.createdAt;
-          valueB = b.createdAt;
+          valueA = a.preferredDate;
+          valueB = b.preferredDate;
       }
       
       if (sortOrder === "asc") {
@@ -187,15 +165,23 @@ const AdminBookingManagement = () => {
   };
   
   // Get property name by ID
-  const getPropertyName = (propertyId) => {
-    const property = properties.find(p => p._id === propertyId);
-    return property ? property.name : "Unknown Property";
+  const getPropertyName = (booking) => {
+    if (booking.property && booking.property.name) {
+      return booking.property.name;
+    }
+    
+    const property = properties.find(p => p._id === booking.listingId);
+    return property ? property.name : "Property details unavailable";
   };
   
   // Get user name by ID
-  const getUserName = (userId) => {
-    const user = users.find(u => u._id === userId);
-    return user ? user.username : "Unknown User";
+  const getUserName = (booking) => {
+    if (booking.user && booking.user.username) {
+      return booking.user.username;
+    }
+    
+    const user = users.find(u => u._id === booking.userId);
+    return user ? user.username : "User details unavailable";
   };
   
   // Get formatted date
@@ -215,7 +201,7 @@ const AdminBookingManagement = () => {
       dateRange: { startDate: "", endDate: "" },
       propertyId: "",
       userId: "",
-      status: "all"
+      status: ""
     });
     setSearchQuery("");
   };
@@ -258,45 +244,28 @@ const AdminBookingManagement = () => {
     setExpandedBookingId(expandedBookingId === bookingId ? null : bookingId);
   };
   
-  // Get status color and icon
-  const getStatusDisplay = (status) => {
-    switch (status) {
-      case "approved":
-        return {
-          color: "text-green-600",
-          bgColor: "bg-green-100",
-          borderColor: "border-green-200",
-          icon: <FaCheckCircle className="text-green-600 mr-2" />,
-          text: "Approved"
-        };
-      case "rejected":
-        return {
-          color: "text-red-600",
-          bgColor: "bg-red-100",
-          borderColor: "border-red-200",
-          icon: <FaTimesCircle className="text-red-600 mr-2" />,
-          text: "Rejected"
-        };
-      default:
-        return {
-          color: "text-yellow-600",
-          bgColor: "bg-yellow-100",
-          borderColor: "border-yellow-200",
-          icon: <FaSpinner className="text-yellow-600 mr-2" />,
-          text: "Pending"
-        };
-    }
-  };
-  
   // The bookings to display after filtering and sorting
   const sortedAndFilteredBookings = getSortedBookings();
   
-  // Stats for quick reference
-  const stats = {
-    total: bookings.length,
-    pending: bookings.filter(b => b.status === "pending").length,
-    approved: bookings.filter(b => b.status === "approved").length,
-    rejected: bookings.filter(b => b.status === "rejected").length
+  // Handle view property
+  const handleViewProperty = (listingId) => {
+    window.open(`/listing/${listingId}`, '_blank');
+  };
+  
+  // Handle edit property
+  const handleEditProperty = (listingId) => {
+    window.open(`/update-listing/${listingId}`, '_blank');
+  };
+  
+  const getStatusIcon = (status) => {
+    switch(status) {
+      case 'approved':
+        return <FaCheck className="mr-2 text-green-600" />;
+      case 'rejected':
+        return <FaTimes className="mr-2 text-red-600" />;
+      default:
+        return <FaClock className="mr-2 text-yellow-600" />;
+    }
   };
 
   return (
@@ -310,27 +279,27 @@ const AdminBookingManagement = () => {
               Booking Management
             </h1>
             <p className="mt-1 text-gray-600">
-              Manage and track all property bookings
+              View and manage all property bookings
             </p>
           </div>
           
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="bg-blue-50 rounded-lg p-3 flex flex-col items-center">
-              <span className="text-blue-800 text-sm font-medium">Total</span>
-              <span className="text-blue-600 text-xl font-bold">{stats.total}</span>
+              <span className="text-blue-800 text-sm font-medium">Total Bookings</span>
+              <span className="text-blue-600 text-xl font-bold">{bookings.length}</span>
             </div>
             <div className="bg-yellow-50 rounded-lg p-3 flex flex-col items-center">
               <span className="text-yellow-800 text-sm font-medium">Pending</span>
-              <span className="text-yellow-600 text-xl font-bold">{stats.pending}</span>
+              <span className="text-yellow-600 text-xl font-bold">
+                {bookings.filter(b => b.status === 'pending').length}
+              </span>
             </div>
             <div className="bg-green-50 rounded-lg p-3 flex flex-col items-center">
               <span className="text-green-800 text-sm font-medium">Approved</span>
-              <span className="text-green-600 text-xl font-bold">{stats.approved}</span>
-            </div>
-            <div className="bg-red-50 rounded-lg p-3 flex flex-col items-center">
-              <span className="text-red-800 text-sm font-medium">Rejected</span>
-              <span className="text-red-600 text-xl font-bold">{stats.rejected}</span>
+              <span className="text-green-600 text-xl font-bold">
+                {bookings.filter(b => b.status === 'approved').length}
+              </span>
             </div>
           </div>
         </div>
@@ -348,7 +317,7 @@ const AdminBookingManagement = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by property, user or booking ID..."
+              placeholder="Search by property, user or customer name..."
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -373,12 +342,10 @@ const AdminBookingManagement = () => {
               }}
               className="appearance-none pl-10 pr-10 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="createdAt_desc">Newest First</option>
-              <option value="createdAt_asc">Oldest First</option>
-              <option value="preferredDate_asc">Check-in Date (Earliest)</option>
-              <option value="preferredDate_desc">Check-in Date (Latest)</option>
-              <option value="status_asc">Status (A-Z)</option>
-              <option value="status_desc">Status (Z-A)</option>
+              <option value="preferredDate_desc">Visit Date (Newest)</option>
+              <option value="preferredDate_asc">Visit Date (Oldest)</option>
+              <option value="createdAt_desc">Booking Date (Newest)</option>
+              <option value="createdAt_asc">Booking Date (Oldest)</option>
             </select>
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FaSortAmountDown className="text-gray-400" />
@@ -389,7 +356,7 @@ const AdminBookingManagement = () => {
         {/* Advanced Filters */}
         {showFilters && (
           <div className="pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Date Range Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -458,47 +425,21 @@ const AdminBookingManagement = () => {
               </div>
               
               {/* Status Filter */}
-              <div className="md:col-span-2 lg:col-span-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Status
                 </label>
-                <div className="flex flex-wrap gap-3">
-                  <StatusFilterButton
-                    status="all"
-                    currentStatus={filters.status}
-                    onClick={() => setFilters(prev => ({ ...prev, status: "all" }))}
-                    label="All"
-                    color="bg-gray-100 text-gray-800"
-                    activeColor="bg-gray-700 text-white"
-                  />
-                  <StatusFilterButton
-                    status="pending"
-                    currentStatus={filters.status}
-                    onClick={() => setFilters(prev => ({ ...prev, status: "pending" }))}
-                    label="Pending"
-                    icon={<FaSpinner className="mr-1" />}
-                    color="bg-yellow-100 text-yellow-800"
-                    activeColor="bg-yellow-500 text-white"
-                  />
-                  <StatusFilterButton
-                    status="approved"
-                    currentStatus={filters.status}
-                    onClick={() => setFilters(prev => ({ ...prev, status: "approved" }))}
-                    label="Approved"
-                    icon={<FaCheckCircle className="mr-1" />}
-                    color="bg-green-100 text-green-800"
-                    activeColor="bg-green-500 text-white"
-                  />
-                  <StatusFilterButton
-                    status="rejected"
-                    currentStatus={filters.status}
-                    onClick={() => setFilters(prev => ({ ...prev, status: "rejected" }))}
-                    label="Rejected"
-                    icon={<FaTimesCircle className="mr-1" />}
-                    color="bg-red-100 text-red-800"
-                    activeColor="bg-red-500 text-white"
-                  />
-                </div>
+                <select
+                  name="status"
+                  value={filters.status}
+                  onChange={handleFilterChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
               </div>
             </div>
             
@@ -566,9 +507,6 @@ const AdminBookingManagement = () => {
         ) : (
           <div className="divide-y divide-gray-200">
             {sortedAndFilteredBookings.map((booking) => {
-              const statusDisplay = getStatusDisplay(booking.status);
-              const property = properties.find(p => p._id === booking.listingId) || {};
-              const user = users.find(u => u._id === booking.userId) || {};
               const isExpanded = expandedBookingId === booking._id;
               
               return (
@@ -579,16 +517,16 @@ const AdminBookingManagement = () => {
                       <div>
                         <h3 className="font-bold text-gray-900 mb-1 flex items-center">
                           <FaHome className="text-blue-500 mr-2" />
-                          {getPropertyName(booking.listingId)}
+                          {getPropertyName(booking)}
                         </h3>
                         <p className="text-sm text-gray-600 flex items-center mb-3">
                           <FaMapMarkerAlt className="text-gray-400 mr-1" />
-                          {property.address || booking.address || "Address not available"}
+                          {booking.property?.address || booking.address || "Address not available"}
                         </p>
                         <p className="text-sm text-gray-700 flex items-center">
                           <FaUser className="text-gray-400 mr-1" />
-                          <span className="font-medium">{getUserName(booking.userId)}</span>
-                          <span className="ml-1">({user.email || "No email"})</span>
+                          <span className="font-medium">{getUserName(booking)}</span>
+                          <span className="ml-1">({booking.user?.email || "No email"})</span>
                         </p>
                       </div>
                       
@@ -601,21 +539,35 @@ const AdminBookingManagement = () => {
                             <p className="font-medium">{getFormattedDate(booking.preferredDate)}</p>
                           </div>
                         </div>
-                        <div className="flex items-center">
+                        <div className="flex items-center mb-2">
                           <FaCalendarAlt className="text-blue-500 mr-2" />
                           <div>
                             <p className="text-sm text-gray-500">Booking Date</p>
                             <p className="font-medium">{getFormattedDate(booking.createdAt)}</p>
                           </div>
                         </div>
+                        <div className={`mt-2 px-3 py-1 rounded-full inline-flex items-center text-sm ${
+                          booking.status === 'approved' ? 'bg-green-100 text-green-800' :
+                          booking.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {getStatusIcon(booking.status)}
+                          <span className="font-medium">{booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</span>
+                        </div>
                       </div>
                       
                       {/* Third column: Status and Actions */}
                       <div className="flex md:justify-end items-start">
-                        <div className={`px-4 py-2 rounded-lg flex items-center ${statusDisplay.bgColor} ${statusDisplay.color}`}>
-                          {statusDisplay.icon}
-                          {statusDisplay.text}
-                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewProperty(booking.listingId);
+                          }}
+                          className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center"
+                        >
+                          <FaEye className="mr-2" />
+                          View Property
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -628,74 +580,42 @@ const AdminBookingManagement = () => {
                         <div>
                           <h4 className="font-semibold text-gray-800 mb-3">Booking Details</h4>
                           <div className="bg-white rounded-lg p-4 border border-gray-200 space-y-3">
-                            <DetailItem label="Booking ID" value={booking._id} />
+                            <DetailItem label="Property" value={getPropertyName(booking)} />
                             <DetailItem label="Contact Phone" value={booking.contact || "Not provided"} />
                             <DetailItem label="Customer Name" value={booking.name} />
                             <DetailItem label="Customer Address" value={booking.address} />
                             <DetailItem label="Booking Created" value={getFormattedDate(booking.createdAt)} />
                             <DetailItem label="Last Updated" value={getFormattedDate(booking.updatedAt)} />
+                            <DetailItem label="Status" value={
+                              <span className="flex items-center">
+                                {getStatusIcon(booking.status)}
+                                {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                              </span>
+                            } />
+                            <DetailItem label="User Email" value={booking.user?.email || "Email not available"} />
                           </div>
                         </div>
                         
                         {/* Right Column: Actions */}
                         <div>
-                          <h4 className="font-semibold text-gray-800 mb-3">Booking Actions</h4>
+                          <h4 className="font-semibold text-gray-800 mb-3">Property Management</h4>
                           <div className="bg-white rounded-lg p-4 border border-gray-200">
-                            <div className="mb-4">
-                              <p className="text-sm text-gray-600 mb-2">Update Booking Status:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {booking.status !== "approved" && (
-                                  <button
-                                    onClick={() => updateBookingStatus(booking._id, "approved")}
-                                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center text-sm"
-                                  >
-                                    <FaCheckCircle className="mr-1" />
-                                    Approve
-                                  </button>
-                                )}
-                                {booking.status !== "rejected" && (
-                                  <button
-                                    onClick={() => updateBookingStatus(booking._id, "rejected")}
-                                    className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center text-sm"
-                                  >
-                                    <FaTimesCircle className="mr-1" />
-                                    Reject
-                                  </button>
-                                )}
-                                {booking.status !== "pending" && (
-                                  <button
-                                    onClick={() => updateBookingStatus(booking._id, "pending")}
-                                    className="px-3 py-1.5 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center text-sm"
-                                  >
-                                    <FaSpinner className="mr-1" />
-                                    Mark as Pending
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            
                             <div>
-                              <p className="text-sm text-gray-600 mb-2">Other Actions:</p>
-                              <div className="flex flex-wrap gap-2">
+                              <p className="text-sm text-gray-600 mb-4">Manage this property:</p>
+                              <div className="flex flex-wrap gap-3">
                                 <button
-                                  onClick={() => window.open(`/listing/${booking.listingId}`, '_blank')}
-                                  className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center text-sm"
+                                  onClick={() => handleViewProperty(booking.listingId)}
+                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
                                 >
-                                  <FaEye className="mr-1" />
+                                  <FaEye className="mr-2" />
                                   View Property
                                 </button>
                                 <button
-                                  onClick={() => window.open(`/profile?user=${booking.userId}`, '_blank')}
-                                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center text-sm"
+                                  onClick={() => handleEditProperty(booking.listingId)}
+                                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
                                 >
-                                  <FaUser className="mr-1" />
-                                  View User
-                                </button>
-                                <button
-                                  className="px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center text-sm"
-                                >
-                                  <FaEdit className="mr-1" />
-                                  Edit Booking
+                                  <FaEdit className="mr-2" />
+                                  Edit Property
                                 </button>
                               </div>
                             </div>
@@ -714,30 +634,13 @@ const AdminBookingManagement = () => {
   );
 };
 
-// Helper component for status filter buttons
-const StatusFilterButton = ({ status, currentStatus, onClick, label, icon, color, activeColor }) => (
-  <button
-    onClick={onClick}
-    className={`px-4 py-2 rounded-lg flex items-center text-sm font-medium transition-all ${
-      currentStatus === status ? activeColor : color
-    }`}
-  >
-    {icon}
-    {label}
-    {currentStatus === status && (
-      <span className="ml-1 flex h-2 w-2 relative">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-current"></span>
-      </span>
-    )}
-  </button>
-);
-
 // Helper component for detail items
 const DetailItem = ({ label, value }) => (
   <div className="flex flex-wrap items-start">
     <span className="text-gray-500 text-sm w-36">{label}:</span>
-    <span className="text-gray-900 flex-1 font-medium text-sm">{value}</span>
+    <span className="text-gray-900 flex-1 font-medium text-sm">
+      {typeof value === 'object' ? value : value}
+    </span>
   </div>
 );
 
