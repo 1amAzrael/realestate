@@ -1,3 +1,4 @@
+// AdminBookingManagement.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -63,8 +64,8 @@ const AdminBookingManagement = () => {
         
         // Process bookings to include property and user information
         const processedBookings = bookingsData.map(booking => {
-          const property = propertiesData.find(p => p._id === booking.listingId);
-          const user = usersData.find(u => u._id === booking.userId);
+          const property = propertiesData.find(p => p._id === (booking.listingId?._id || booking.listingId));
+          const user = usersData.find(u => u._id === (booking.userId?._id || booking.userId));
           
           return {
             ...booking,
@@ -103,12 +104,12 @@ const AdminBookingManagement = () => {
       }
       
       // Filter by property
-      if (filters.propertyId && booking.listingId !== filters.propertyId) {
+      if (filters.propertyId && getBookingPropertyId(booking) !== filters.propertyId) {
         return false;
       }
       
       // Filter by user
-      if (filters.userId && booking.userId !== filters.userId) {
+      if (filters.userId && getBookingUserId(booking) !== filters.userId) {
         return false;
       }
       
@@ -164,13 +165,33 @@ const AdminBookingManagement = () => {
     });
   };
   
+  // Helper function to safely get the property ID from a booking
+  const getBookingPropertyId = (booking) => {
+    // Check if listingId is an object with _id property
+    if (booking.listingId && typeof booking.listingId === 'object' && booking.listingId._id) {
+      return booking.listingId._id;
+    }
+    // Otherwise assume listingId is the ID itself
+    return booking.listingId;
+  };
+  
+  // Helper function to safely get the user ID from a booking
+  const getBookingUserId = (booking) => {
+    // Check if userId is an object with _id property
+    if (booking.userId && typeof booking.userId === 'object' && booking.userId._id) {
+      return booking.userId._id;
+    }
+    // Otherwise assume userId is the ID itself
+    return booking.userId;
+  };
+  
   // Get property name by ID
   const getPropertyName = (booking) => {
     if (booking.property && booking.property.name) {
       return booking.property.name;
     }
     
-    const property = properties.find(p => p._id === booking.listingId);
+    const property = properties.find(p => p._id === getBookingPropertyId(booking));
     return property ? property.name : "Property details unavailable";
   };
   
@@ -180,7 +201,7 @@ const AdminBookingManagement = () => {
       return booking.user.username;
     }
     
-    const user = users.find(u => u._id === booking.userId);
+    const user = users.find(u => u._id === getBookingUserId(booking));
     return user ? user.username : "User details unavailable";
   };
   
@@ -247,14 +268,26 @@ const AdminBookingManagement = () => {
   // The bookings to display after filtering and sorting
   const sortedAndFilteredBookings = getSortedBookings();
   
-  // Handle view property
-  const handleViewProperty = (listingId) => {
-    window.open(`/listing/${listingId}`, '_blank');
+  // Handle view property - FIXED to use the proper ID extraction
+  const handleViewProperty = (booking) => {
+    const propertyId = getBookingPropertyId(booking);
+    if (propertyId) {
+      window.open(`/listing/${propertyId}`, '_blank');
+    } else {
+      console.error("Missing property ID");
+      alert("Unable to view property: ID not found");
+    }
   };
   
-  // Handle edit property
-  const handleEditProperty = (listingId) => {
-    window.open(`/update-listing/${listingId}`, '_blank');
+  // Handle edit property - FIXED to use the proper ID extraction
+  const handleEditProperty = (booking) => {
+    const propertyId = getBookingPropertyId(booking);
+    if (propertyId) {
+      window.open(`/update-listing/${propertyId}`, '_blank');
+    } else {
+      console.error("Missing property ID");
+      alert("Unable to edit property: ID not found");
+    }
   };
   
   const getStatusIcon = (status) => {
@@ -561,7 +594,7 @@ const AdminBookingManagement = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleViewProperty(booking.listingId);
+                            handleViewProperty(booking);
                           }}
                           className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center"
                         >
@@ -604,14 +637,14 @@ const AdminBookingManagement = () => {
                               <p className="text-sm text-gray-600 mb-4">Manage this property:</p>
                               <div className="flex flex-wrap gap-3">
                                 <button
-                                  onClick={() => handleViewProperty(booking.listingId)}
+                                  onClick={() => handleViewProperty(booking)}
                                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
                                 >
                                   <FaEye className="mr-2" />
                                   View Property
                                 </button>
                                 <button
-                                  onClick={() => handleEditProperty(booking.listingId)}
+                                  onClick={() => handleEditProperty(booking)}
                                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
                                 >
                                   <FaEdit className="mr-2" />
@@ -632,7 +665,7 @@ const AdminBookingManagement = () => {
       </div>
     </div>
   );
-};
+}
 
 // Helper component for detail items
 const DetailItem = ({ label, value }) => (
