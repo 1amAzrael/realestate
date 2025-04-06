@@ -1,10 +1,72 @@
-// ListingItem.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MdLocationOn, MdStar } from 'react-icons/md';
-import { FaBed, FaBath, FaRuler, FaParking, FaCouch, FaTag } from 'react-icons/fa';
+import { FaBed, FaBath, FaRuler, FaParking, FaCouch, FaTag, FaCalendarAlt, FaLock, FaCheckCircle } from 'react-icons/fa';
+import { format, isPast } from 'date-fns';
 
 export default function ListingItem({ listing }) {
+  // Check if the listing is available or booked
+  const isBooked = listing.availability && listing.availability.isBooked;
+  const isUserBooking = listing.userBooking && listing.userBooking.hasBooked;
+  
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return format(date, 'MMM dd, yyyy');
+  };
+  
+  // Get booking status display information
+  const getBookingStatusDisplay = () => {
+    if (isUserBooking) {
+      // User has booked this property
+      return {
+        badge: (
+          <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase shadow-md z-10">
+            <FaCheckCircle className="inline mr-1" /> You Booked
+          </div>
+        ),
+        overlay: (
+          <div className="absolute inset-0 bg-gradient-to-t from-green-900/70 via-transparent to-transparent z-[5] flex items-end">
+            <div className="w-full p-4 text-white">
+              <p className="flex items-center font-medium">
+                <FaCalendarAlt className="mr-2" />
+                Your booking: {formatDate(listing.userBooking.bookingDate)}
+              </p>
+            </div>
+          </div>
+        )
+      };
+    } else if (isBooked) {
+      // Property is booked by someone else
+      return {
+        badge: (
+          <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase shadow-md z-10">
+            <FaLock className="inline mr-1" /> Booked
+          </div>
+        ),
+        overlay: (
+          <div className="absolute inset-0 bg-gradient-to-t from-red-900/70 via-transparent to-transparent z-[5] flex items-end">
+            <div className="w-full p-4 text-white">
+              <p className="flex items-center font-medium">
+                <FaCalendarAlt className="mr-2" />
+                Booked until: {formatDate(listing.availability.bookedUntil)}
+              </p>
+            </div>
+          </div>
+        )
+      };
+    }
+    
+    // Default (available)
+    return {
+      badge: null,
+      overlay: null
+    };
+  };
+  
+  const bookingStatus = getBookingStatusDisplay();
+
   return (
     <div className="group bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-full transform hover:-translate-y-1">
       <Link to={`/listing/${listing._id}`} className="block h-full">
@@ -14,13 +76,16 @@ export default function ListingItem({ listing }) {
             <img
               src={listing.imageURL[0] || 'https://via.placeholder.com/600x400?text=No+Image'}
               alt={listing.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+              className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ${isBooked && !isUserBooking ? 'opacity-80' : ''}`}
             />
           </div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
           
+          {/* Booking status overlay */}
+          {bookingStatus.overlay}
+          
           {/* Tags positioned on the image */}
-          <div className="absolute top-4 left-4 flex flex-col space-y-2">
+          <div className="absolute top-4 left-4 flex flex-col space-y-2 z-10">
             <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full shadow-md ${
               listing.type === 'rent' 
                 ? 'bg-blue-500 text-white' 
@@ -35,6 +100,9 @@ export default function ListingItem({ listing }) {
               </span>
             )}
           </div>
+          
+          {/* Booking status badge */}
+          {bookingStatus.badge}
           
           {/* Price tag */}
           <div className="absolute bottom-4 right-4">

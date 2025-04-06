@@ -6,7 +6,8 @@ import {
   FaChevronLeft, FaChevronRight, FaSignOutAlt, 
   FaCheckCircle, FaTimesCircle, FaSpinner, FaArrowLeft,
   FaCalendar, FaMapMarkerAlt, FaPhone, FaStar, FaBell,
-  FaSearch, FaEllipsisV, FaFilter, FaSortAmountDown
+  FaSearch, FaEllipsisV, FaFilter, FaSortAmountDown,
+  FaCalendarAlt // Added for booking management
 } from "react-icons/fa";
 
 import Modal from "../Component/Modal";
@@ -18,6 +19,7 @@ import EditListingModal from "../Component/EditListingModal";
 import ViewListingModal from "../Component/ViewListingModal";
 import AddWorkerModal from "../Component/AddWorkerModal";
 import EditWorkerModal from "../Component/EditWorkerModal";
+import AdminBookingManagement from "../Component/AdminBookingManagement"; // Added for booking management
 
 // Dashboard Card Component with animation
 const DashboardCard = ({ title, value, icon, trend, color, delay }) => {
@@ -129,6 +131,7 @@ export default function AdminDashboard() {
   });
   const [processingRequestIds, setProcessingRequestIds] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [bookingStats, setBookingStats] = useState(null); // Added for booking management
   const navigate = useNavigate();
 
   // Show success message with auto-dismiss
@@ -261,6 +264,34 @@ export default function AdminDashboard() {
       }
     };
     fetchShiftingRequests();
+  }, [currentUser]);
+
+  // Fetch dashboard stats including booking stats
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        // Your existing fetch calls...
+        
+        // Add this for booking stats:
+        const bookingStatsRes = await fetch("/api/booking/stats", {
+          headers: {
+            Authorization: `Bearer ${currentUser?.access_token}`,
+          },
+        });
+        
+        if (!bookingStatsRes.ok) {
+          throw new Error("Failed to fetch booking stats");
+        }
+        
+        const bookingStatsData = await bookingStatsRes.json();
+        setBookingStats(bookingStatsData.stats);
+        
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      }
+    };
+    
+    fetchDashboardStats();
   }, [currentUser]);
 
   // Find worker details by workerId
@@ -498,11 +529,12 @@ export default function AdminDashboard() {
     setWorkerData({ ...workerData, [e.target.name]: e.target.value });
   };
 
-  // Navigation items for sidebar
+  // Navigation items for sidebar with booking management
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: <FaChartBar /> },
     { id: "users", label: "Manage Users", icon: <FaUsers /> },
     { id: "listings", label: "Manage Listings", icon: <FaHome /> },
+    { id: "bookings", label: "Booking Management", icon: <FaCalendarAlt /> }, // New item
     { id: "workers", label: "Manage Workers", icon: <FaHardHat /> },
     { id: "shifting-requests", label: "Shifting Requests", icon: <FaTruck /> },
   ];
@@ -735,7 +767,7 @@ export default function AdminDashboard() {
                   <p className="font-bold">Success</p>
                   <p>{successMessage}</p>
                 </div>
-<button 
+                <button 
                   onClick={() => setSuccessMessage(null)}
                   className="ml-auto text-green-700 hover:text-green-800"
                 >
@@ -783,14 +815,89 @@ export default function AdminDashboard() {
                   delay={300}
                 />
                 <DashboardCard 
-                  title="Shifting Requests" 
-                  value={shiftingRequests.length} 
-                  icon={<FaTruck className="text-blue-500 text-xl" />}
+                  title="Total Bookings" 
+                  value={bookingStats?.totalBookings || 0} 
+                  icon={<FaCalendarAlt className="text-purple-500 text-xl" />}
                   trend="+15% from last month"
-                  color="blue"
-                  delay={400}
+                  color="purple"
+                  delay={350}
                 />
               </div>
+
+              {/* Booking Stats Section (New) */}
+              {bookingStats && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div className="p-6 border-b border-gray-100">
+                      <h3 className="font-semibold text-gray-800 flex items-center">
+                        <FaCalendarAlt className="mr-2 text-purple-500" />
+                        Recent Booking Activity
+                      </h3>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="text-center px-3 py-2 bg-yellow-50 rounded-lg">
+                          <div className="font-bold text-yellow-700">{bookingStats.pendingBookings}</div>
+                          <div className="text-xs text-yellow-600">Pending</div>
+                        </div>
+                        <div className="text-center px-3 py-2 bg-green-50 rounded-lg">
+                          <div className="font-bold text-green-700">{bookingStats.approvedBookings}</div>
+                          <div className="text-xs text-green-600">Approved</div>
+                        </div>
+                        <div className="text-center px-3 py-2 bg-red-50 rounded-lg">
+                          <div className="font-bold text-red-700">{bookingStats.rejectedBookings}</div>
+                          <div className="text-xs text-red-600">Rejected</div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 flex justify-center">
+                        <button
+                          onClick={() => setActiveTab("bookings")}
+                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+                        >
+                          <FaCalendarAlt className="mr-2" />
+                          Manage Bookings
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Top booked properties */}
+                  <div className="bg-white rounded-xl shadow-md overflow-hidden md:col-span-2">
+                    <div className="p-6 border-b border-gray-100">
+                      <h3 className="font-semibold text-gray-800 flex items-center">
+                        <FaHome className="mr-2 text-blue-500" />
+                        Top Booked Properties
+                      </h3>
+                    </div>
+                    <div className="p-4">
+                      {bookingStats.topProperties && bookingStats.topProperties.length > 0 ? (
+                        <ul className="space-y-3">
+                          {bookingStats.topProperties.map((item, index) => (
+                            <li key={index} className="flex items-center justify-between border-b border-gray-100 pb-2">
+                              <div className="flex items-center">
+                                <span className="h-6 w-6 rounded-full bg-blue-100 text-blue-800 text-xs flex items-center justify-center mr-3">
+                                  {index + 1}
+                                </span>
+                                <span className="font-medium text-gray-800">
+                                  {item.property?.name || "Unknown Property"}
+                                </span>
+                              </div>
+                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                                {item.count} bookings
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="text-center py-4 text-gray-500">
+                          No booking data available
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Request Status Distribution */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -914,6 +1021,11 @@ export default function AdminDashboard() {
               }}
               onDeleteListing={(listingId) => handleDeleteListing(listingId)}
             />
+          )}
+
+          {/* Bookings Section (New) */}
+          {activeTab === 'bookings' && (
+            <AdminBookingManagement />
           )}
 
           {/* Workers Section */}

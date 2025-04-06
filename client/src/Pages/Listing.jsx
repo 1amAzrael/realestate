@@ -4,8 +4,10 @@ import Slider from 'react-slick';
 import { 
   FaBed, FaBath, FaParking, FaCouch, FaStar, FaRegStar, 
   FaUser, FaComment, FaMapMarkerAlt, FaCalendarAlt, FaCheckCircle,
-  FaArrowLeft, FaArrowRight, FaInfo, FaHeart, FaPencilAlt, FaMap
+  FaArrowLeft, FaArrowRight, FaInfo, FaHeart, FaPencilAlt, FaMap,
+  FaCalendarCheck, FaLock, FaClock, FaExclamationCircle
 } from 'react-icons/fa';
+import { format, parseISO, isAfter } from 'date-fns';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { useSelector } from 'react-redux';
@@ -40,6 +42,19 @@ function Listing() {
 
   const averageRating = calculateAverageRating(reviews);
   const isOwner = currentUser && listing?.userRef === currentUser._id;
+  
+  // Check if the property is booked
+  const isPropertyBooked = listing?.availability && listing?.availability.isBooked;
+  const isUserBooking = listing?.userBooking && listing?.userBooking.hasBooked;
+  const nextAvailableDate = listing?.availability && listing?.availability.nextAvailableDate 
+    ? format(new Date(listing.availability.nextAvailableDate), 'MMMM dd, yyyy')
+    : null;
+
+  // Format a date string
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return format(new Date(dateString), 'MMMM dd, yyyy');
+  };
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -222,11 +237,6 @@ function Listing() {
   const handleThumbnailClick = (index) => {
     setCurrentSlide(index);
     mainSliderRef.current.slickGoTo(index);
-  };
-
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   return (
@@ -456,6 +466,43 @@ function Listing() {
                 )}
               </div>
               
+              {/* Property Availability Status Banner */}
+              {isUserBooking && (
+                <div className="mt-4 mb-2 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start">
+                  <FaCalendarCheck className="text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                  <div>
+                    <p className="text-green-800 font-medium">You've booked this property</p>
+                    <p className="text-sm text-green-700 mt-1">
+                      Your visit date: {formatDate(listing.userBooking.bookingDate)}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {isPropertyBooked && !isUserBooking && (
+                <div className="mt-4 mb-2 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start">
+                  <FaLock className="text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+                  <div>
+                    <p className="text-amber-800 font-medium">This property is currently booked</p>
+                    {nextAvailableDate && (
+                      <p className="text-sm text-amber-700 mt-1">
+                        Booked until: {nextAvailableDate}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+              {!isPropertyBooked && !isUserBooking && !isOwner && (
+                <div className="mt-4 mb-2 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start">
+                  <FaClock className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+                  <div>
+                    <p className="text-blue-800 font-medium">This property is available</p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Book now to secure your preferred date
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               <div className="border-t border-gray-100 pt-4 mb-4">
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="text-center p-2 bg-gray-50 rounded-lg">
@@ -471,14 +518,28 @@ function Listing() {
                 </div>
               </div>
               
-              {!isOwner && !isBooked && (
+              {/* Modify the booking buttons section */}
+              {!isOwner && !isUserBooking && (
                 <button
                   onClick={handleBookNow}
-                  className="w-full py-2.5 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-all shadow-sm"
+                  className={`w-full py-2.5 px-4 rounded-lg font-medium hover:bg-blue-700 transition-all shadow-sm flex items-center justify-center
+                    ${isPropertyBooked 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-600 text-white'}`}
+                  disabled={isPropertyBooked}
                 >
                   <FaCalendarAlt className="inline mr-2" />
-                  {listing.type === 'rent' ? 'Book Viewing' : 'Request Purchase'}
+                  {isPropertyBooked 
+                    ? 'Currently Unavailable' 
+                    : (listing.type === 'rent' ? 'Book Viewing' : 'Request Purchase')}
                 </button>
+              )}
+              
+              {isPropertyBooked && !isUserBooking && !isOwner && (
+                <div className="mt-2 text-center text-sm text-gray-500">
+                  <FaExclamationCircle className="inline mr-1" />
+                  This property is booked until {nextAvailableDate}
+                </div>
               )}
               
               {!isOwner && (
@@ -566,6 +627,7 @@ function Listing() {
               <p className="text-gray-500 text-sm">No reviews yet. Be the first to review this property!</p>
             </div>
           )}
+          
           
           {/* Add Review Form */}
           {currentUser && !isOwner && (

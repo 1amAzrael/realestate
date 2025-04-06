@@ -8,6 +8,7 @@ import reviewRoutes from './routes/review.route.js';
 import bookingRoutes from './routes/booking.route.js'; // Added booking routes
 import workerRoutes from "./routes/worker.routes.js";
 import shiftingRequestRoutes from "./routes/shiftingRequest.routes.js";
+import availabilityRoutes from './routes/availability.route.js';
 
 
 
@@ -36,6 +37,11 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/booking', bookingRoutes); // Mount booking routes
 app.use("/api/worker", workerRoutes);
 app.use("/api/shiftingRequest", shiftingRequestRoutes);
+// Add the route to the app configuration (add this with the other routes)
+app.use('/api/availability', availabilityRoutes);
+
+// Update the booking routes with admin all bookings route
+app.use('/api/booking', bookingRoutes);
 
 
 

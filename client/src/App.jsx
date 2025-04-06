@@ -26,6 +26,7 @@ import Contact from './Pages/Contact';
 
 
 
+
 // Wrapper component to conditionally render Header and Footer
 const Layout = ({ children }) => {
   const location = useLocation();
