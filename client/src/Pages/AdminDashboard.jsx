@@ -425,15 +425,18 @@ export default function AdminDashboard() {
     }
     
     try {
-      const res = await fetch(`/api/listing/delete/${listingId}`, {
+      const res = await fetch(`/api/admin/delete-listing/${listingId}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${currentUser?.access_token}`,
+          "Authorization": `Bearer ${currentUser?.access_token}`,
         },
       });
+      
+      const data = await res.json();
       if (!res.ok) {
-        throw new Error("Failed to delete listing");
+        throw new Error(data.message || "Failed to delete listing");
       }
+      
       setListings((prevListings) =>
         prevListings.filter((listing) => listing._id !== listingId)
       );
@@ -443,7 +446,6 @@ export default function AdminDashboard() {
       console.error(error);
     }
   };
-
   const handleEditUser = async (userId, updatedData) => {
     try {
       const res = await fetch(`/api/admin/edit-user/${userId}`, {
@@ -1250,6 +1252,9 @@ export default function AdminDashboard() {
         selectedUser={selectedUser}
         onSave={(updatedData) => handleEditUser(selectedUser._id, updatedData)}
       />
+      {activeTab === 'bookings' && (
+  <AdminBookingManagement />
+)}
 
       <EditListingModal
         isOpen={isEditListingModalOpen}
