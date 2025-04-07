@@ -5,7 +5,7 @@ import authRouter from './routes/auth.route.js';
 import listingRouter from './routes/listing.route.js';
 import adminRoutes from './routes/admin.route.js';
 import reviewRoutes from './routes/review.route.js';
-import bookingRoutes from './routes/booking.route.js'; // Added booking routes
+import bookingRoutes from './routes/booking.route.js'; 
 import workerRoutes from "./routes/worker.routes.js";
 import shiftingRequestRoutes from "./routes/shiftingRequest.routes.js";
 import availabilityRoutes from './routes/availability.route.js';

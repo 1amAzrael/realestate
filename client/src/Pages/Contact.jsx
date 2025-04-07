@@ -223,7 +223,6 @@ export default function Contact() {
                   </div>
                 </div>
 
-                {/* Office Hours Section instead of social media */}
                 
               </div>
             </motion.div>
