@@ -1252,9 +1252,7 @@ export default function AdminDashboard() {
         selectedUser={selectedUser}
         onSave={(updatedData) => handleEditUser(selectedUser._id, updatedData)}
       />
-      {activeTab === 'bookings' && (
-  <AdminBookingManagement />
-)}
+      
 
       <EditListingModal
         isOpen={isEditListingModalOpen}
