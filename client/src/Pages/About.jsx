@@ -290,19 +290,19 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               {
-                name: "Sarah Johnson",
+                name: "Walter White",
                 role: "Property Owner",
                 quote: "Rentpal transformed how I manage my properties. Their platform is intuitive and their support is fantastic.",
                 image: "https://randomuser.me/api/portraits/women/32.jpg"
               },
               {
-                name: "Michael Chen",
+                name: "Jessie Pinkman",
                 role: "Tenant",
                 quote: "Found my dream apartment in just two days! The verification process gave me confidence that I was making the right choice.",
                 image: "https://randomuser.me/api/portraits/men/45.jpg"
               },
               {
-                name: "Lisa Rodriguez",
+                name: "Saul Goodman",
                 role: "Real Estate Agent",
                 quote: "As an agent, I appreciate how Rentpal streamlines the entire rental process. It's a game-changer for my business.",
                 image: "https://randomuser.me/api/portraits/women/68.jpg"
