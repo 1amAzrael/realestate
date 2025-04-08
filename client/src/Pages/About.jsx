@@ -30,7 +30,7 @@ export default function AboutPage() {
       {/* Hero Section with Parallax-like effect */}
       <section className="relative h-[80vh] flex items-center justify-center overflow-hidden">
         {/* Background gradient with overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-700 z-0">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-700 z-0"> </div>
           {/* Decorative elements */}
           <div className="absolute inset-0">
             {[...Array(20)].map((_, i) => (
@@ -47,7 +47,7 @@ export default function AboutPage() {
               />
             ))}
           </div>
-        </div>
+       
 
         {/* Hero content */}
         <div className="relative z-10 max-w-2xl mx-auto text-center px-4">
