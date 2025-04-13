@@ -122,7 +122,7 @@ const BookingForm = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-16 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto mt-5">
         <button
           onClick={() => navigate(`/listing/${listingId}`)}
           className="mb-6 flex items-center text-blue-600 hover:text-blue-800 transition-colors"

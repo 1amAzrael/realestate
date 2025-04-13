@@ -103,7 +103,7 @@ function App() {
             }
           />
           <Route
-            path="/mybookings"
+            path="/my-bookings"
             element={
               <Layout>
                 <UserBookings />
