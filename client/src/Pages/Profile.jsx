@@ -1,3 +1,4 @@
+// Import the new PaymentHistory component
 import React, { useRef, useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
@@ -16,10 +17,12 @@ import { Link } from 'react-router-dom';
 import UserBookings from '../Component/UserBookings';
 import LandlordBookings from '../Component/LandlordBookings';
 import ShiftingBookings from '../Component/ShiftingBookings';
+import PaymentHistory from '../Component/PaymentHistory'; // Import the new component
 import {
   FaUser, FaEnvelope, FaLock, FaCheck, FaTrash, FaSignOutAlt,
   FaHome, FaPlus, FaEdit, FaCalendarAlt, FaTruck, FaClipboardList,
-  FaTimes, FaSpinner, FaMapMarkerAlt, FaCalendarCheck, FaClock
+  FaTimes, FaSpinner, FaMapMarkerAlt, FaCalendarCheck, FaClock,
+  FaCreditCard // Added for payment history
 } from 'react-icons/fa';
 
 function Profile() {
@@ -57,7 +60,7 @@ function Profile() {
     fetchShiftingBookings();
   }, [currentUser._id, currentUser.access_token]);
 
-// Fetch Property Listing
+  // Fetch Property Listing
   useEffect(() => {
     const checkIfLandlord = async () => {
       try {
@@ -307,6 +310,14 @@ function Profile() {
               </>
             )
           )}
+          
+          {/* New Payment History Link */}
+          <SidebarLink
+            icon={<FaCreditCard />}
+            label="Payment History"
+            isActive={activeSection === 'payment-history'}
+            onClick={() => setActiveSection('payment-history')}
+          />
 
           <div className="mt-6 pt-6 border-t border-gray-100">
             <SidebarLink
@@ -498,10 +509,10 @@ function Profile() {
 
             {/* Listings Section - 2 columns */}
             {isLandlord && (
-             <section className="bg-white p-11 rounded-xl shadow-md lg:col-span-2">
-             <div className="flex items-center justify-between mb-12">
-               <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                 <FaHome className="mr-4 text-blue-600" />
+              <section className="bg-white p-11 rounded-xl shadow-md lg:col-span-2">
+                <div className="flex items-center justify-between mb-12">
+                  <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+                    <FaHome className="mr-4 text-blue-600" />
                     My Properties
                   </h2>
 
@@ -681,6 +692,21 @@ function Profile() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+        
+        {/* New Payment History Section */}
+        {activeSection === 'payment-history' && (
+          <div>
+            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center mb-2">
+                <FaCreditCard className="mr-3 text-blue-600" />
+                Payment History
+              </h2>
+              <p className="text-gray-600">View and manage your payment records</p>
+            </div>
+            
+            <PaymentHistory />
           </div>
         )}
       </main>

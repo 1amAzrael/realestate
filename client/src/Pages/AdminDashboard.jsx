@@ -6,11 +6,9 @@ import {
   FaChevronLeft, FaChevronRight, FaSignOutAlt, 
   FaCheckCircle, FaTimesCircle, FaSpinner, FaArrowLeft,
   FaCalendar, FaMapMarkerAlt, FaPhone, FaStar, FaBell,
-  FaSearch, FaEllipsisV, FaFilter, FaSortAmountDown,
-  FaCalendarAlt // Added for booking management
+  FaSearch, FaFilter, FaCalendarAlt, FaFileInvoiceDollar
 } from "react-icons/fa";
 
-import Modal from "../Component/Modal";
 import ManageUsers from "../Component/ManageUsers";
 import ManageListings from "../Component/ManageListings";
 import ManageWorkers from "../Component/ManageWorkers";
@@ -19,9 +17,9 @@ import EditListingModal from "../Component/EditListingModal";
 import ViewListingModal from "../Component/ViewListingModal";
 import AddWorkerModal from "../Component/AddWorkerModal";
 import EditWorkerModal from "../Component/EditWorkerModal";
-import AdminBookingManagement from "../Component/AdminBookingManagement"; // Added for booking management
+import AdminBookingManagement from "../Component/AdminBookingManagement";
+import AdminPaymentHistory from "../Component/AdminPaymentHistory";
 
-// Dashboard Card Component with animation
 const DashboardCard = ({ title, value, icon, trend, color, delay }) => {
   return (
     <div 
@@ -58,7 +56,6 @@ const DashboardCard = ({ title, value, icon, trend, color, delay }) => {
   );
 };
 
-// Activity Item Component
 const ActivityItem = ({ icon, title, subtitle, timestamp, status, statusColor }) => {
   return (
     <div className="flex items-start pb-4 border-b border-gray-100 hover:bg-gray-50 p-2 rounded transition-colors">
@@ -81,7 +78,6 @@ const ActivityItem = ({ icon, title, subtitle, timestamp, status, statusColor })
   );
 };
 
-// Section Header Component
 const SectionHeader = ({ title, icon, actionButton }) => {
   return (
     <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-blue-50 flex justify-between items-center rounded-t-xl">
@@ -131,10 +127,19 @@ export default function AdminDashboard() {
   });
   const [processingRequestIds, setProcessingRequestIds] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [bookingStats, setBookingStats] = useState(null); // Added for booking management
+  const [bookingStats, setBookingStats] = useState(null);
   const navigate = useNavigate();
 
-  // Show success message with auto-dismiss
+  const navItems = [
+    { id: "dashboard", label: "Dashboard", icon: <FaChartBar /> },
+    { id: "users", label: "Manage Users", icon: <FaUsers /> },
+    { id: "listings", label: "Manage Listings", icon: <FaHome /> },
+    { id: "bookings", label: "Booking Management", icon: <FaCalendarAlt /> },
+    { id: "workers", label: "Manage Workers", icon: <FaHardHat /> },
+    { id: "shifting-requests", label: "Shifting Requests", icon: <FaTruck /> },
+    { id: "payments", label: "Payment History", icon: <FaFileInvoiceDollar /> },
+  ];
+
   const showSuccess = (message) => {
     setSuccessMessage(message);
     setTimeout(() => {
@@ -142,11 +147,9 @@ export default function AdminDashboard() {
     }, 3000);
   };
 
-  // Apply filters to shifting requests
   useEffect(() => {
     let result = [...shiftingRequests];
     
-    // Apply search term filter
     if (searchTerm.trim() !== "") {
       result = result.filter(
         request => 
@@ -155,7 +158,6 @@ export default function AdminDashboard() {
       );
     }
     
-    // Apply status filter
     if (statusFilter !== "all") {
       result = result.filter(request => request.status === statusFilter);
     }
@@ -163,7 +165,6 @@ export default function AdminDashboard() {
     setFilteredRequests(result);
   }, [shiftingRequests, searchTerm, statusFilter]);
 
-  // Fetch all users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -188,7 +189,6 @@ export default function AdminDashboard() {
     fetchUsers();
   }, [currentUser]);
 
-  // Fetch all listings
   useEffect(() => {
     const fetchListings = async () => {
       try {
@@ -210,11 +210,9 @@ export default function AdminDashboard() {
         setLoading(prev => ({ ...prev, listings: false }));
       }
     };
-
     fetchListings();
   }, [currentUser]);
 
-  // Fetch all Workers
   useEffect(() => {
     const fetchWorkers = async () => {
       try {
@@ -236,11 +234,9 @@ export default function AdminDashboard() {
         setLoading(prev => ({ ...prev, workers: false }));
       }
     };
-
     fetchWorkers();
   }, [currentUser]);
 
-  // Fetch all shifting requests
   useEffect(() => {
     const fetchShiftingRequests = async () => {
       try {
@@ -266,13 +262,9 @@ export default function AdminDashboard() {
     fetchShiftingRequests();
   }, [currentUser]);
 
-  // Fetch dashboard stats including booking stats
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        // Your existing fetch calls...
-        
-        // Add this for booking stats:
         const bookingStatsRes = await fetch("/api/booking/stats", {
           headers: {
             Authorization: `Bearer ${currentUser?.access_token}`,
@@ -285,16 +277,13 @@ export default function AdminDashboard() {
         
         const bookingStatsData = await bookingStatsRes.json();
         setBookingStats(bookingStatsData.stats);
-        
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
       }
     };
-    
     fetchDashboardStats();
   }, [currentUser]);
 
-  // Find worker details by workerId
   const getWorkerDetails = (workerId) => {
     return workers.find(worker => worker._id === workerId) || null;
   };
@@ -385,7 +374,6 @@ export default function AdminDashboard() {
 
   const handleUpdateRequestStatus = async (requestId, status) => {
     setError(null);
-    // Add the request ID to processing list to show loading state
     setProcessingRequestIds(prev => [...prev, requestId]);
     
     try {
@@ -402,19 +390,16 @@ export default function AdminDashboard() {
         throw new Error(data.message || "Failed to update shifting request status");
       }
       
-      // Update the request in the state
       const updatedRequests = shiftingRequests.map((request) =>
         request._id === requestId ? { ...request, status, statusUpdated: true } : request
       );
       setShiftingRequests(updatedRequests);
       
-      // Remove from processing list
       setProcessingRequestIds(prev => prev.filter(id => id !== requestId));
       showSuccess(`Request status updated to ${status}`);
     } catch (error) {
       setError(error.message);
       console.error("Error updating shifting request status:", error);
-      // Remove from processing list in case of error
       setProcessingRequestIds(prev => prev.filter(id => id !== requestId));
     }
   };
@@ -446,6 +431,7 @@ export default function AdminDashboard() {
       console.error(error);
     }
   };
+
   const handleEditUser = async (userId, updatedData) => {
     try {
       const res = await fetch(`/api/admin/edit-user/${userId}`, {
@@ -461,7 +447,6 @@ export default function AdminDashboard() {
       }
       const data = await res.json();
       
-      // Update the state with the new user data
       setUsers((prevUsers) =>
         prevUsers.map((user) => (user._id === userId ? data : user))
       );
@@ -489,7 +474,6 @@ export default function AdminDashboard() {
       }
       const data = await res.json();
       
-      // Update the state with the new listing data
       setListings((prevListings) =>
         prevListings.map((listing) => (listing._id === listingId ? data : listing))
       );
@@ -531,19 +515,7 @@ export default function AdminDashboard() {
     setWorkerData({ ...workerData, [e.target.name]: e.target.value });
   };
 
-  // Navigation items for sidebar with booking management
-  const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: <FaChartBar /> },
-    { id: "users", label: "Manage Users", icon: <FaUsers /> },
-    { id: "listings", label: "Manage Listings", icon: <FaHome /> },
-    { id: "bookings", label: "Booking Management", icon: <FaCalendarAlt /> }, // New item
-    { id: "workers", label: "Manage Workers", icon: <FaHardHat /> },
-    { id: "shifting-requests", label: "Shifting Requests", icon: <FaTruck /> },
-  ];
-
-  // Status button renderer with conditional display
   const renderStatusButton = (request, status, colorClass, icon) => {
-    // If status is already the current one or the request is being processed, don't show other buttons
     if (request.statusUpdated || request.status === status || processingRequestIds.includes(request._id)) {
       if (request.status === status) {
         return (
@@ -569,10 +541,7 @@ export default function AdminDashboard() {
     );
   };
 
-  // Check if any data is still loading
   const isLoading = Object.values(loading).some(value => value);
-
-  // Calculate some stats for the dashboard
   const pendingRequests = shiftingRequests.filter(req => req.status === 'pending').length;
   const approvedRequests = shiftingRequests.filter(req => req.status === 'approved').length;
   const rejectedRequests = shiftingRequests.filter(req => req.status === 'rejected').length;
@@ -655,7 +624,6 @@ export default function AdminDashboard() {
             </h1>
 
             <div className="flex items-center space-x-4">
-              {/* Notification Bell */}
               <div className="relative">
                 <button 
                   onClick={() => setShowNotifications(!showNotifications)}
@@ -667,7 +635,6 @@ export default function AdminDashboard() {
                   </span>
                 </button>
                 
-                {/* Notifications Panel */}
                 {showNotifications && (
                   <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl z-30 border border-gray-200 overflow-hidden animate-fadeIn">
                     <div className="p-3 border-b border-gray-200 bg-gray-50 flex justify-between">
@@ -727,7 +694,6 @@ export default function AdminDashboard() {
         </header>
 
         <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          {/* Error Message */}
           {error && (
             <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-md animate-fadeIn">
               <div className="flex">
@@ -758,7 +724,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Success Message */}
           {successMessage && (
             <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow-md animate-fadeIn fixed top-20 right-4 z-50 w-80">
               <div className="flex">
@@ -779,7 +744,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Loading indicator */}
           {isLoading && (
             <div className="flex justify-center items-center py-10">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
@@ -787,10 +751,8 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Dashboard Content */}
           {!isLoading && activeTab === "dashboard" && (
             <div className="space-y-8">
-              {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <DashboardCard 
                   title="Total Users" 
@@ -826,7 +788,6 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              {/* Booking Stats Section (New) */}
               {bookingStats && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <div className="bg-white rounded-xl shadow-md overflow-hidden">
@@ -864,7 +825,6 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   
-                  {/* Top booked properties */}
                   <div className="bg-white rounded-xl shadow-md overflow-hidden md:col-span-2">
                     <div className="p-6 border-b border-gray-100">
                       <h3 className="font-semibold text-gray-800 flex items-center">
@@ -901,7 +861,6 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* Request Status Distribution */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white rounded-xl shadow-md overflow-hidden">
                   <SectionHeader 
@@ -952,7 +911,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Recent Activity */}
               <div className="bg-white rounded-xl shadow-md overflow-hidden">
                 <SectionHeader 
                   title="Recent Activity" 
@@ -965,7 +923,6 @@ export default function AdminDashboard() {
                 />
                 <div className="p-6">
                   <div className="space-y-4">
-                    {/* Most recent shifting requests */}
                     {shiftingRequests.slice(0, 5).map((request) => (
                       <ActivityItem 
                         key={request._id}
@@ -997,7 +954,6 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Users Section */}
           {!isLoading && activeTab === "users" && (
             <ManageUsers
               users={users}
@@ -1009,7 +965,6 @@ export default function AdminDashboard() {
             />
           )}
 
-          {/* Listings Section */}
           {!isLoading && activeTab === "listings" && (
             <ManageListings
               listings={listings}
@@ -1025,12 +980,10 @@ export default function AdminDashboard() {
             />
           )}
 
-          {/* Bookings Section (New) */}
           {activeTab === 'bookings' && (
             <AdminBookingManagement />
           )}
 
-          {/* Workers Section */}
           {!isLoading && activeTab === "workers" && (
             <ManageWorkers
               workers={workers}
@@ -1043,10 +996,8 @@ export default function AdminDashboard() {
             />
           )}
 
-          {/* Shifting Requests Section */}
           {!isLoading && activeTab === "shifting-requests" && (
             <div>
-              {/* Search and Filter Bar */}
               <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
                 <div className="p-4 border-b border-gray-200 flex flex-wrap gap-4 items-center justify-between">
                   <div className="relative flex-grow max-w-md">
@@ -1080,7 +1031,10 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Requests List */}
+              {!isLoading && activeTab === "payments" && (
+                <AdminPaymentHistory />
+              )}
+
               <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
                 <SectionHeader 
                   title="Shifting Requests" 
@@ -1132,7 +1086,6 @@ export default function AdminDashboard() {
                               </p>
                             </div>
                             
-                            {/* Worker Details Section */}
                             <div className="bg-gray-50 p-4 rounded-lg mb-4 md:mb-0 border border-gray-200 md:w-1/3">
                               <h4 className="font-medium text-gray-700 mb-2 flex items-center">
                                 <FaHardHat className="mr-2 text-indigo-500" />
@@ -1172,7 +1125,6 @@ export default function AdminDashboard() {
                           </div>
                           
                           <div className="mt-4 flex flex-wrap gap-2 justify-end">
-                            {/* Show loading indicator when processing */}
                             {processingRequestIds.includes(request._id) ? (
                               <div className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center">
                                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -1183,7 +1135,6 @@ export default function AdminDashboard() {
                               </div>
                             ) : (
                               <>
-                                {/* Only show status buttons if no update has been made yet */}
                                 {!request.statusUpdated ? (
                                   <>
                                     {renderStatusButton(
@@ -1206,7 +1157,6 @@ export default function AdminDashboard() {
                                     )}
                                   </>
                                 ) : (
-                                  // Show only the current status button
                                   <div className={`
                                     ${request.status === 'approved' 
                                       ? 'bg-gradient-to-r from-green-500 to-green-600' 
@@ -1245,14 +1195,12 @@ export default function AdminDashboard() {
         </main>
       </div>
 
-      {/* Modals */}
       <EditUserModal
         isOpen={isEditUserModalOpen}
         onClose={() => setIsEditUserModalOpen(false)}
         selectedUser={selectedUser}
         onSave={(updatedData) => handleEditUser(selectedUser._id, updatedData)}
       />
-      
 
       <EditListingModal
         isOpen={isEditListingModalOpen}
@@ -1282,7 +1230,6 @@ export default function AdminDashboard() {
         onSave={(updatedData) => handleEditWorker(selectedWorker._id, updatedData)}
       />
 
-      {/* Add CSS for animations */}
       <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-10px); }

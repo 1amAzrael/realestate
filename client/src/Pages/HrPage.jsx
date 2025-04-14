@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { FaUser, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaArrowLeft, 
   FaCheckCircle, FaStar, FaBriefcase, FaTools, FaClock, FaDollarSign, 
-  FaSortAmountDown } from "react-icons/fa";
+  FaSortAmountDown, FaExclamationTriangle, FaSpinner } from "react-icons/fa";
 
 const HrPage = () => {
   const [workers, setWorkers] = useState([]);
@@ -16,6 +16,8 @@ const HrPage = () => {
     shiftingAddress: "",
   });
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
   const { currentUser } = useSelector((state) => state.user);
   const navigate = useNavigate();
   
@@ -24,6 +26,7 @@ const HrPage = () => {
     const fetchWorkers = async () => {
       try {
         setLoading(true);
+        setError(null);
         const res = await fetch("/api/worker/all");
         if (!res.ok) {
           throw new Error("Failed to fetch workers");
@@ -38,15 +41,24 @@ const HrPage = () => {
         }));
         
         setWorkers(processedWorkers);
-        setLoading(false);
       } catch (error) {
         console.error("Error fetching workers:", error);
+        setError("Could not load workers. Please try again later.");
+      } finally {
         setLoading(false);
       }
     };
 
     fetchWorkers();
-  }, []);
+
+    // Pre-fill customer name if user is logged in
+    if (currentUser) {
+      setBookingData(prev => ({
+        ...prev,
+        customerName: currentUser.username || ""
+      }));
+    }
+  }, [currentUser]);
 
   const handleHireNow = (worker) => {
     setSelectedWorker({
@@ -59,21 +71,37 @@ const HrPage = () => {
 
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+    
     try {
+      // Validate required fields
+      if (!bookingData.customerName || !bookingData.customerPhone || 
+          !bookingData.shiftingDate || !bookingData.shiftingAddress) {
+        throw new Error("All fields are required");
+      }
+
+      // Make sure we have the worker and user IDs
+      if (!selectedWorker?._id || !currentUser?._id) {
+        throw new Error("Worker or user information is missing");
+      }
+
       const requestBody = {
         customerName: bookingData.customerName,
         customerPhone: bookingData.customerPhone,
         shiftingDate: bookingData.shiftingDate,
         shiftingAddress: bookingData.shiftingAddress,
         workerId: selectedWorker._id,
-        userId: currentUser._id,
+        userId: currentUser._id
       };
+
+      console.log("Submitting shifting request:", requestBody);
 
       const res = await fetch("/api/shiftingRequest/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${currentUser?.access_token}`,
+          Authorization: `Bearer ${currentUser.access_token}`,
         },
         body: JSON.stringify(requestBody),
       });
@@ -84,14 +112,28 @@ const HrPage = () => {
       }
 
       const data = await res.json();
+      console.log("Shifting request created:", data);
       setBookingStep(2);
     } catch (error) {
       console.error("Error submitting shifting request:", error);
+      setError(error.message || "Failed to submit request. Please try again.");
+      
+      // For development purposes, allow skipping to the next step
+      // In production, you should remove this
+      if (process.env.NODE_ENV === 'development') {
+        if (confirm("Error occurred. For development: Continue to payment screen anyway?")) {
+          setBookingStep(2);
+        }
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleInputChange = (e) => {
     setBookingData({ ...bookingData, [e.target.name]: e.target.value });
+    // Clear error when user starts typing
+    if (error) setError(null);
   };
 
   const handleConfirmShifting = () => {
@@ -112,13 +154,14 @@ const HrPage = () => {
   const handleBackToWorkers = () => {
     setSelectedWorker(null);
     setBookingStep(0);
+    setError(null);
   };
 
   const formatRate = (rate) => {
     if (!rate) return "Rate not available";
     
     const numericRate = parseFloat(rate);
-    return isNaN(numericRate) ? rate : `$${numericRate.toFixed(2)}/hr`;
+    return isNaN(numericRate) ? rate : `NPR ${numericRate.toLocaleString()}`;
   };
 
   // Rating stars component
@@ -162,6 +205,20 @@ const HrPage = () => {
       </div>
 
       <main className="container mx-auto max-w-6xl px-4 py-8">
+        {/* Display global error message if present */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg shadow">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <FaExclamationTriangle className="h-5 w-5 text-red-500" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Step 0: Worker Selection */}
         {bookingStep === 0 && (
           <div className="space-y-8">
@@ -351,7 +408,7 @@ const HrPage = () => {
                   <FaPhone className="inline h-4 w-4 mr-1" /> Phone Number
                 </label>
                 <input
-                  type="number"
+                  type="tel"
                   id="customerPhone"
                   name="customerPhone"
                   value={bookingData.customerPhone}
@@ -397,9 +454,19 @@ const HrPage = () => {
                 </p>
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-md flex items-center justify-center font-medium"
+                  disabled={isSubmitting}
+                  className={`w-full flex items-center justify-center py-3 px-4 rounded-lg text-white font-medium transition-colors ${
+                    isSubmitting ? 'bg-blue-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+                  }`}
                 >
-                  Confirm Booking
+                  {isSubmitting ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Confirm Booking'
+                  )}
                 </button>
               </div>
             </form>
@@ -430,7 +497,9 @@ const HrPage = () => {
                   <FaCalendarAlt className="mt-1 mr-3 text-blue-500" />
                   <div>
                     <p className="text-sm text-gray-500">Date</p>
-                    <p className="font-medium">{bookingData.shiftingDate}</p>
+                    <p className="font-medium">{new Date(bookingData.shiftingDate).toLocaleDateString('en-US', {
+                      year: 'numeric', month: 'long', day: 'numeric'
+                    })}</p>
                   </div>
                 </div>
                 <div className="flex items-start">
@@ -438,6 +507,13 @@ const HrPage = () => {
                   <div>
                     <p className="text-sm text-gray-500">Address</p>
                     <p className="font-medium">{bookingData.shiftingAddress}</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <FaDollarSign className="mt-1 mr-3 text-blue-500" />
+                  <div>
+                    <p className="text-sm text-gray-500">Amount</p>
+                    <p className="font-medium">{formatRate(selectedWorker.rate)}</p>
                   </div>
                 </div>
               </div>
@@ -452,10 +528,10 @@ const HrPage = () => {
                 Proceed to Payment
               </button>
               <button
-                onClick={() => setBookingStep(0)}
+                onClick={() => navigate("/profile")}
                 className="bg-gray-200 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-300 transition-all duration-300"
               >
-                No, thank you
+                View My Bookings
               </button>
             </div>
           </div>

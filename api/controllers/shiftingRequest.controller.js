@@ -1,4 +1,5 @@
 import ShiftingRequest from "../models/shiftingRequest.model.js";
+import Worker from "../models/worker.model.js"; // Import Worker model to get rate
 import { errorHandler } from "../utils/error.js";
 
 // Create a new shifting request
@@ -11,29 +12,48 @@ export const createShiftingRequest = async (req, res, next) => {
       return next(errorHandler(400, "All fields are required"));
     }
 
+    // Get worker details to determine totalAmount based on worker's rate
+    const worker = await Worker.findById(workerId);
+    if (!worker) {
+      return next(errorHandler(404, "Worker not found"));
+    }
+
+    // Use worker's rate or a default amount
+    const totalAmount = worker.rate ? parseFloat(worker.rate) : 500;
+
     // Create a new shifting request
     const shiftingRequest = new ShiftingRequest({
       customerName,
       customerPhone,
       shiftingDate,
       shiftingAddress,
-      worker: workerId,
-      user: userId,
+      workerId, // Use workerId as per the model
+      userId,   // Use userId as per the model
+      totalAmount, // Set the required totalAmount field
+      status: 'pending'
     });
 
-    await shiftingRequest.save(); // Save to the database
-    console.log("Shifting request saved:", shiftingRequest); // Debugging
-    res.status(201).json({ success: true, shiftingRequest });
+    const savedRequest = await shiftingRequest.save(); // Save to the database
+    console.log("Shifting request saved:", savedRequest); // Debugging
+    
+    res.status(201).json({ 
+      success: true, 
+      message: "Shifting request created successfully",
+      shiftingRequest: savedRequest 
+    });
   } catch (error) {
     console.error("Error saving shifting request:", error); // Debugging
-    next(errorHandler(500, "Failed to create shifting request"));
+    next(errorHandler(500, `Failed to create shifting request: ${error.message}`));
   }
 };
 
 // Get all shifting requests for admin
 export const getShiftingRequests = async (req, res, next) => {
   try {
-    const shiftingRequests = await ShiftingRequest.find().populate("user worker");
+    const shiftingRequests = await ShiftingRequest.find()
+      .populate("userId", "username email") // Populate with select fields
+      .populate("workerId", "name experience rate"); // Populate with select fields
+    
     res.status(200).json({ success: true, shiftingRequests });
   } catch (error) {
     next(errorHandler(500, "Failed to fetch shifting requests"));
@@ -50,7 +70,9 @@ export const updateShiftingRequestStatus = async (req, res, next) => {
       id,
       { status },
       { new: true }
-    ).populate("user worker");
+    )
+      .populate("userId", "username email")
+      .populate("workerId", "name experience rate");
 
     if (!updatedRequest) {
       return next(errorHandler(404, "Shifting request not found"));
@@ -66,7 +88,9 @@ export const updateShiftingRequestStatus = async (req, res, next) => {
 export const getUserShiftingRequests = async (req, res, next) => {
   try {
     const userId = req.params.userId;
-    const shiftingRequests = await ShiftingRequest.find({ user: userId }).populate("worker");
+    const shiftingRequests = await ShiftingRequest.find({ userId }) // Changed from user to userId
+      .populate("workerId", "name experience rate"); // Changed from worker to workerId
+    
     res.status(200).json({ success: true, shiftingRequests });
   } catch (error) {
     next(errorHandler(500, "Failed to fetch user shifting requests"));

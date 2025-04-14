@@ -23,25 +23,26 @@ import PaymentVerify from './Pages/PaymentVerify.jsx';
 import PaymentSuccess from './Pages/PaymentSuccess.jsx';
 import MapPage from './Pages/MapPage';
 import Contact from './Pages/Contact';
-
-
-
+// Removed OrderForm import since you don't have this component
 
 // Wrapper component to conditionally render Header and Footer
 const Layout = ({ children }) => {
   const location = useLocation();
-  const isAdminDashboard = location.pathname === '/admin-dashboard';
+  const isAdminDashboard = location.pathname.startsWith('/admin-dashboard');
+  // Don't show header and footer on payment verification pages
+  const isPaymentPage = location.pathname.includes('/payment/verify') ||
+                         location.pathname.includes('/payment/success');
 
   return (
     <div>
       {/* Conditionally render Header */}
-      {!isAdminDashboard && <Header />}
+      {!isAdminDashboard && !isPaymentPage && <Header />}
 
       {/* Render children (page content) */}
       <main>{children}</main>
 
       {/* Conditionally render Footer */}
-      {!isAdminDashboard && <Footer />}
+      {!isAdminDashboard && !isPaymentPage && <Footer />}
     </div>
   );
 };
@@ -51,7 +52,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Wrap all routes with the Layout component */}
-        
+
         <Route
           path="/"
           element={
@@ -103,7 +104,7 @@ function App() {
             }
           />
           <Route
-            path="/my-bookings"
+            path="/mybookings"
             element={
               <Layout>
                 <UserBookings />
@@ -118,7 +119,23 @@ function App() {
               </Layout>
             }
           />
-         
+          {/* Add both general payment and specific booking payment routes */}
+          <Route
+            path="/payment"
+            element={
+              <Layout>
+                <PaymentPage />
+              </Layout>
+            }
+          />
+          <Route
+            path="/payment/:bookingId"
+            element={
+              <Layout>
+                <PaymentPage />
+              </Layout>
+            }
+          />
         </Route>
         <Route
           path="/about"
@@ -134,7 +151,7 @@ function App() {
             <Layout>
               <Contact />
             </Layout>
-          } 
+          }
         />
         <Route
           path="/listing/:listingId"
@@ -161,14 +178,6 @@ function App() {
           }
         />
         <Route
-          path="/payment"
-          element={
-            <Layout>
-              <PaymentPage />
-            </Layout>
-          }
-        />
-        <Route
           path="/book/:listingId"
           element={
             <Layout>
@@ -184,7 +193,7 @@ function App() {
             </Layout>
           }
         />
-       
+
         <Route
           path="/contact-landlord/:listingId"
           element={
@@ -193,14 +202,30 @@ function App() {
             </Layout>
           }
         />
-        <Route path="/payment/verify" element={<PaymentVerify />} />
-        <Route path="/payment/success" element={<PaymentSuccess />} />
 
+        {/* Payment verification routes - wrapped in Layout but without header/footer */}
+        <Route
+          path="/payment/verify"
+          element={
+            <Layout>
+              <PaymentVerify />
+            </Layout>
+          }
+        />
+        <Route
+          path="/payment/success"
+          element={
+            <Layout>
+              <PaymentSuccess />
+            </Layout>
+          }
+        />
 
         {/* Admin Dashboard (no Header/Footer) */}
         <Route path="/admin-dashboard" element={<AdminDashboard />}>
-      
-         
+          {/* Removed OrderForm references since you don't have this component */}
+          {/* You can replace with a default admin dashboard view */}
+          <Route path="" element={<div>Admin Dashboard Home</div>} />
         </Route>
       </Routes>
     </BrowserRouter>
