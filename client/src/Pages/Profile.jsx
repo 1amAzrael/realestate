@@ -311,13 +311,14 @@ function Profile() {
             )
           )}
           
-          {/* New Payment History Link */}
-          <SidebarLink
-            icon={<FaCreditCard />}
-            label="Payment History"
-            isActive={activeSection === 'payment-history'}
-            onClick={() => setActiveSection('payment-history')}
-          />
+          {!isLandlord && (
+  <SidebarLink
+    icon={<FaCreditCard />}
+    label="Payment History"
+    isActive={activeSection === 'payment-history'}
+    onClick={() => setActiveSection('payment-history')}
+  />
+)}
 
           <div className="mt-6 pt-6 border-t border-gray-100">
             <SidebarLink

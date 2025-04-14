@@ -29,6 +29,7 @@ const AdminPaymentHistory = () => {
         setLoading(true);
         setError(null);
 
+        // Fixed endpoint: changed from /api/payment/all to /api/payments/all
         let url = `/api/payments/all?page=${pagination.page}&limit=${pagination.limit}`;
         if (statusFilter !== 'all') url += `&status=${statusFilter}`;
         if (typeFilter !== 'all') url += `&bookingType=${typeFilter}`;

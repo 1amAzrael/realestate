@@ -1222,6 +1222,9 @@ export default function AdminDashboard() {
         onInputChange={handleInputChange}
         onSave={handleAddWorker}
       />
+      {!isLoading && activeTab === "payments" && (
+  <AdminPaymentHistory />
+)}
 
       <EditWorkerModal
         isOpen={isEditWorkerModalOpen}
