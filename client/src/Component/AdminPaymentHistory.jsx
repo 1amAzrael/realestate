@@ -1,3 +1,4 @@
+// src/Component/AdminPaymentHistory.jsx
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
@@ -7,6 +8,7 @@ import {
   FaChevronLeft, FaChevronRight, FaFileExport, FaFileInvoiceDollar, 
   FaExclamationTriangle
 } from 'react-icons/fa';
+import PaymentReceiptButton from './PaymentReceiptButton';
 
 const AdminPaymentHistory = () => {
   const [payments, setPayments] = useState([]);
@@ -29,7 +31,6 @@ const AdminPaymentHistory = () => {
         setLoading(true);
         setError(null);
 
-        // Fixed endpoint: changed from /api/payment/all to /api/payments/all
         let url = `/api/payments/all?page=${pagination.page}&limit=${pagination.limit}`;
         if (statusFilter !== 'all') url += `&status=${statusFilter}`;
         if (typeFilter !== 'all') url += `&bookingType=${typeFilter}`;
@@ -240,7 +241,7 @@ const AdminPaymentHistory = () => {
                   Type
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Details
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -297,13 +298,20 @@ const AdminPaymentHistory = () => {
                       {payment.bookingType === 'shifting' ? 'Shifting Service' : 'Property Booking'}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button 
-                      className="text-indigo-600 hover:text-indigo-900"
-                      onClick={() => {/* View details functionality */}}
-                    >
-                      View Details
-                    </button>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button 
+                        className="text-indigo-600 hover:text-indigo-900"
+                        onClick={() => {/* View details functionality */}}
+                      >
+                        View
+                      </button>
+                      
+                      {/* Only show the receipt button for completed payments */}
+                      {payment.status === 'completed' && (
+                        <PaymentReceiptButton payment={payment} />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -352,6 +360,19 @@ const AdminPaymentHistory = () => {
           </div>
         </div>
       )}
+      
+      {/* CSS animation styles */}
+      <style jsx="true">{`
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translateY(-10px); }
+          10% { opacity: 1; transform: translateY(0); }
+          90% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-10px); }
+        }
+        .animate-fade-in-out {
+          animation: fadeInOut 3s ease-in-out forwards;
+        }
+      `}</style>
     </div>
   );
 };

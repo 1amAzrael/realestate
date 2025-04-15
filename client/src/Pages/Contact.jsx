@@ -1,28 +1,13 @@
-import React, { useState } from 'react';
+// src/Pages/Contact.jsx
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
-  FaEnvelope, FaPhone, FaMapMarkerAlt, FaUser, 
-  FaPaperPlane, FaCheckCircle, FaSpinner, 
-  FaExclamationCircle, FaFacebookF, FaTwitter, 
-  FaInstagram, FaLinkedinIn
+  FaEnvelope, FaPhone, FaMapMarkerAlt, FaArrowRight
 } from 'react-icons/fa';
+import ContactForm from '../Component/ContactForm';
 
 export default function Contact() {
-  // Form state
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    subject: '',
-    message: ''
-  });
-  
-  // Form status states
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState(null);
-  
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -41,67 +26,6 @@ export default function Contact() {
       y: 0,
       opacity: 1,
       transition: { duration: 0.5 }
-    }
-  };
-
-  // Handle form input changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validate form
-    if (!formData.name || !formData.email || !formData.message) {
-      setError('Please fill in all required fields');
-      return;
-    }
-    
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError('Please enter a valid email address');
-      return;
-    }
-    
-    // Simulate API call
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // In a real app, you would send the data to your backend
-      // const response = await fetch('/api/contact', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData)
-      // });
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Simulate success
-      setSuccess(true);
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
-      });
-      
-      // Reset success message after 5 seconds
-      setTimeout(() => {
-        setSuccess(false);
-      }, 5000);
-      
-    } catch (err) {
-      setError('Failed to send message. Please try again.');
-      console.error('Contact form error:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -130,7 +54,7 @@ export default function Contact() {
         </div>
 
         {/* Hero content */}
-        <div className="relative z-10 max-w-4xl mx-auto text-center px-4">
+        <div className="relative z-10 max-w-2xl mx-auto text-center px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -142,7 +66,7 @@ export default function Contact() {
             <h1 className="text-5xl md:text-6xl font-extrabold leading-tight tracking-tight mb-6 text-white">
               Get In <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">Touch</span>
             </h1>
-            <p className="text-xl md:text-2xl font-light mb-10 text-blue-100 max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl font-light mb-10 text-blue-100 max-w-xl mx-auto">
               Have questions or need assistance? Our team is here to help you with all your property needs.
             </p>
             <div className="flex justify-center">
@@ -150,7 +74,6 @@ export default function Contact() {
                 href="#contact-form"
                 className="flex items-center justify-center gap-2 bg-white text-blue-700 px-8 py-4 rounded-lg text-lg font-semibold shadow-lg hover:bg-blue-50 transition-all duration-300 transform hover:-translate-y-1"
               >
-                <FaPaperPlane className="text-blue-600" />
                 Send Message
               </a>
             </div>
@@ -170,7 +93,7 @@ export default function Contact() {
       </section>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-16">
+      <div className="container mx-auto px-4 py-16" id="contact-form">
         <motion.section 
           initial="hidden"
           whileInView="visible"
@@ -222,161 +145,12 @@ export default function Contact() {
                     </div>
                   </div>
                 </div>
-
-                
               </div>
             </motion.div>
 
             {/* Contact Form */}
-            <motion.div variants={itemVariants} className="lg:col-span-3" id="contact-form">
-              <div className="bg-white rounded-xl shadow-xl p-8 border border-gray-100">
-                <h2 className="text-3xl font-bold text-gray-800 mb-6">Send Us a Message</h2>
-                <p className="text-gray-600 mb-8">
-                  Fill out the form below and we'll get back to you as soon as possible.
-                </p>
-
-                {/* Status Messages */}
-                {error && (
-                  <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-md flex items-center">
-                    <FaExclamationCircle className="text-red-500 mr-3" />
-                    <span className="text-red-800">{error}</span>
-                  </div>
-                )}
-
-                {success && (
-                  <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-md flex items-center">
-                    <FaCheckCircle className="text-green-500 mr-3" />
-                    <span className="text-green-800">Your message has been sent successfully!</span>
-                  </div>
-                )}
-
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="name" className="block text-gray-700 font-medium mb-2">
-                        Your Name *
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <FaUser className="text-gray-400" />
-                        </div>
-                        <input
-                          type="text"
-                          id="name"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleChange}
-                          placeholder="Enter your name"
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label htmlFor="email" className="block text-gray-700 font-medium mb-2">
-                        Your Email *
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <FaEnvelope className="text-gray-400" />
-                        </div>
-                        <input
-                          type="email"
-                          id="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          placeholder="Enter your email"
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="phone" className="block text-gray-700 font-medium mb-2">
-                        Phone Number
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <FaPhone className="text-gray-400" />
-                        </div>
-                        <input
-                          type="tel"
-                          id="phone"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          placeholder="Enter your phone (optional)"
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label htmlFor="subject" className="block text-gray-700 font-medium mb-2">
-                        Subject
-                      </label>
-                      <select
-                        id="subject"
-                        name="subject"
-                        value={formData.subject}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      >
-                        <option value="">Select a subject</option>
-                        <option value="General Inquiry">General Inquiry</option>
-                        <option value="Property Listing">Property Listing</option>
-                        <option value="Booking Issue">Booking Issue</option>
-                        <option value="Payment Question">Payment Question</option>
-                        <option value="Technical Support">Technical Support</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="message" className="block text-gray-700 font-medium mb-2">
-                      Your Message *
-                    </label>
-                    <textarea
-                      id="message"
-                      name="message"
-                      value={formData.message}
-                      onChange={handleChange}
-                      rows="5"
-                      placeholder="How can we help you?"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      required
-                    ></textarea>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className={`w-full py-4 px-6 rounded-lg text-white font-medium flex items-center justify-center ${
-                      loading
-                        ? 'bg-gray-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg transform hover:-translate-y-0.5 transition-all duration-300'
-                    }`}
-                  >
-                    {loading ? (
-                      <>
-                        <FaSpinner className="animate-spin mr-2" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <FaPaperPlane className="mr-2" />
-                        Send Message
-                      </>
-                    )}
-                  </button>
-                </form>
-              </div>
+            <motion.div variants={itemVariants} className="lg:col-span-3">
+              <ContactForm />
             </motion.div>
           </div>
         </motion.section>
@@ -411,50 +185,6 @@ export default function Contact() {
                   className="rounded-lg"
                 ></iframe>
               </div>
-            </div>
-          </motion.div>
-        </motion.section>
-
-        {/* FAQs Section */}
-        <motion.section
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.3 }}
-          variants={containerVariants}
-          className="mb-20"
-        >
-          <motion.div variants={itemVariants} className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">Frequently Asked Questions</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Find answers to common questions about our services and platform.
-            </p>
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                {
-                  question: "How do I list my property on RentPal?",
-                  answer: "To list your property, sign in to your account, click on 'Create Listing' from your profile dashboard, and follow the step-by-step process to add property details, photos, and pricing."
-                },
-                {
-                  question: "What are the fees for listing a property?",
-                  answer: "Basic listings are free. Premium listings with enhanced visibility and features have a small fee. Check our pricing page for current rates and promotional offers."
-                },
-                {
-                  question: "How do bookings and payments work?",
-                  answer: "When a user books your property, you'll receive a notification to approve or reject the request. Once approved, the payment process is handled securely through our platform with multiple payment options."
-                },
-                {
-                  question: "Can I offer discounts on my listings?",
-                  answer: "Yes, you can set special offers and discounts for your properties. Use the 'Offer' toggle when creating or editing your listing to specify discounted prices."
-                },
-              ].map((faq, index) => (
-                <div key={index} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 border border-gray-100">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4">{faq.question}</h3>
-                  <p className="text-gray-600">{faq.answer}</p>
-                </div>
-              ))}
             </div>
           </motion.div>
         </motion.section>
