@@ -3,7 +3,6 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { FaHome, FaLocationArrow, FaMapMarkerAlt, FaExpand } from "react-icons/fa";
 
-// Fix Leaflet icon issues
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 

@@ -40,7 +40,7 @@ const listingSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    imageURL: {
+    imageURL: { 
         type: Array,
         required: true,
     },

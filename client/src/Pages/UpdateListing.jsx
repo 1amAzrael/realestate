@@ -39,7 +39,7 @@ function UpdateListing() {
   
   const { currentUser } = useSelector((state) => state.user);
 
-  // Fetch listing data on mount
+  // Fetch listing data 
   useEffect(() => {
     const fetchListing = async () => {
       try {
