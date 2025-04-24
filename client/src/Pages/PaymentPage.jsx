@@ -74,7 +74,7 @@ const PaymentPage = () => {
       const isHrBooking = booking._id.toString().startsWith('hr-');
 
       let payloadData;
-      // Use the same endpoint for both types of bookings
+      
       const endpoint = '/api/payments/initiate';
 
       if (isHrBooking) {

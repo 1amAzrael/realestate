@@ -30,7 +30,7 @@ function UserBookings() {
           setLoading(false);
           return;
         }
-        console.log("Bookings data:", data); // Add this line to inspect the data
+        console.log("Bookings data:", data); 
         setBookings(data.bookings || data);
         setLoading(false);
       } catch (err) {

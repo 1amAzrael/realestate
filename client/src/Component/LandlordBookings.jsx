@@ -217,7 +217,7 @@ function LandlordBookings() {
                 <FaCalendarAlt className="mr-3" />
                 Booking Requests
               </h2>
-              <p className="text-blue-100 mb-6">Manage property viewing and booking requests from customers</p>
+              <p className="text-blue-100 mb-6">Manage property viewing and booking requests from renters</p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 flex items-center transform transition-transform hover:scale-105">

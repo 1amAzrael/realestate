@@ -1,10 +1,12 @@
 // AdminBookingManagement.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { 
   FaCalendarAlt, FaSearch, FaFilter, FaSortAmountDown, 
   FaEye, FaHome, FaUser, FaMapMarkerAlt, FaCalendarCheck, 
-  FaEdit, FaExclamationCircle, FaCheck, FaTimes, FaClock
+  FaEdit, FaExclamationCircle, FaCheck, FaTimes, FaClock,
+  FaTrash, FaSpinner, FaInfoCircle, FaPhone, FaEnvelope
 } from "react-icons/fa";
 import { format, parseISO } from 'date-fns';
 
@@ -13,8 +15,13 @@ const AdminBookingManagement = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [properties, setProperties] = useState([]);
   const [users, setUsers] = useState([]);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [processingAction, setProcessingAction] = useState(false);
   
   // Filtering states
   const [filters, setFilters] = useState({
@@ -33,34 +40,61 @@ const AdminBookingManagement = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
+  // Get current user
+  const { currentUser } = useSelector((state) => state.user);
+
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    status: "",
+    preferredDate: "",
+    name: "",
+    address: "",
+    contact: ""
+  });
+
   useEffect(() => {
     // Fetch all bookings, properties, and users when component mounts
     const fetchData = async () => {
       setLoading(true);
       try {
         // Fetch bookings
-        const bookingsRes = await fetch("/api/booking/all");
-        const bookingsData = await bookingsRes.json();
+        const bookingsRes = await fetch("/api/booking/all", {
+          headers: {
+            "Authorization": `Bearer ${currentUser?.access_token}`
+          }
+        });
         
         if (!bookingsRes.ok) {
-          throw new Error(bookingsData.message || "Failed to fetch bookings");
+          throw new Error("Failed to fetch bookings");
         }
+        
+        const bookingsData = await bookingsRes.json();
         
         // Fetch properties (listings)
-        const propertiesRes = await fetch("/api/listing/all");
-        const propertiesData = await propertiesRes.json();
+        const propertiesRes = await fetch("/api/listing/all", {
+          headers: {
+            "Authorization": `Bearer ${currentUser?.access_token}`
+          }
+        });
         
         if (!propertiesRes.ok) {
-          throw new Error(propertiesData.message || "Failed to fetch properties");
+          throw new Error("Failed to fetch properties");
         }
+        
+        const propertiesData = await propertiesRes.json();
         
         // Fetch users
-        const usersRes = await fetch("/api/user/all");
-        const usersData = await usersRes.json();
+        const usersRes = await fetch("/api/user/all", {
+          headers: {
+            "Authorization": `Bearer ${currentUser?.access_token}`
+          }
+        });
         
         if (!usersRes.ok) {
-          throw new Error(usersData.message || "Failed to fetch users");
+          throw new Error("Failed to fetch users");
         }
+        
+        const usersData = await usersRes.json();
         
         // Process bookings to include property and user information
         const processedBookings = bookingsData.map(booking => {
@@ -87,8 +121,21 @@ const AdminBookingManagement = () => {
     };
     
     fetchData();
-  }, []);
-  
+  }, [currentUser]);
+
+  // Update edit form when a booking is selected
+  useEffect(() => {
+    if (selectedBooking) {
+      setEditForm({
+        status: selectedBooking.status || "",
+        preferredDate: selectedBooking.preferredDate ? new Date(selectedBooking.preferredDate).toISOString().split('T')[0] : "",
+        name: selectedBooking.name || "",
+        address: selectedBooking.address || "",
+        contact: selectedBooking.contact || ""
+      });
+    }
+  }, [selectedBooking]);
+
   // Filter bookings based on current filters and search query
   const getFilteredBookings = () => {
     return bookings.filter(booking => {
@@ -128,8 +175,9 @@ const AdminBookingManagement = () => {
         const userMatch = user && user.username && user.username.toLowerCase().includes(query);
         const addressMatch = booking.address && booking.address.toLowerCase().includes(query);
         const nameMatch = booking.name && booking.name.toLowerCase().includes(query);
+        const contactMatch = booking.contact && booking.contact.toLowerCase().includes(query);
         
-        return propertyMatch || userMatch || addressMatch || nameMatch;
+        return propertyMatch || userMatch || addressMatch || nameMatch || contactMatch;
       }
       
       return true;
@@ -275,7 +323,7 @@ const AdminBookingManagement = () => {
       window.open(`/listing/${propertyId}`, '_blank');
     } else {
       console.error("Missing property ID");
-      alert("Unable to view property: ID not found");
+      setError("Unable to view property: ID not found");
     }
   };
   
@@ -286,10 +334,128 @@ const AdminBookingManagement = () => {
       window.open(`/update-listing/${propertyId}`, '_blank');
     } else {
       console.error("Missing property ID");
-      alert("Unable to edit property: ID not found");
+      setError("Unable to edit property: ID not found");
     }
   };
-  
+
+  // Handle edit booking
+  const handleEditBooking = (booking) => {
+    setSelectedBooking(booking);
+    setIsEditModalOpen(true);
+  };
+
+  // Handle delete booking
+  const handleDeleteBooking = (booking) => {
+    setSelectedBooking(booking);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Handle edit form change
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Submit edit form
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedBooking) return;
+    
+    setProcessingAction(true);
+    try {
+      const updateData = {};
+      
+      // Only include fields that have been changed
+      if (editForm.status !== selectedBooking.status) updateData.status = editForm.status;
+      if (editForm.preferredDate !== new Date(selectedBooking.preferredDate).toISOString().split('T')[0]) {
+        updateData.preferredDate = editForm.preferredDate;
+      }
+      if (editForm.name !== selectedBooking.name) updateData.name = editForm.name;
+      if (editForm.address !== selectedBooking.address) updateData.address = editForm.address;
+      if (editForm.contact !== selectedBooking.contact) updateData.contact = editForm.contact;
+      
+      // Only send request if there are changes
+      if (Object.keys(updateData).length === 0) {
+        setIsEditModalOpen(false);
+        setProcessingAction(false);
+        return;
+      }
+      
+      const res = await fetch(`/api/booking/admin/${selectedBooking._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${currentUser?.access_token}`
+        },
+        body: JSON.stringify(updateData)
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to update booking");
+      }
+      
+      const data = await res.json();
+      
+      // Update booking in state
+      setBookings(prevBookings => prevBookings.map(booking => 
+        booking._id === selectedBooking._id ? { ...booking, ...data.booking } : booking
+      ));
+      
+      setSuccess("Booking updated successfully");
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setSuccess(null);
+      }, 3000);
+      
+      setIsEditModalOpen(false);
+    } catch (err) {
+      setError(err.message || "An error occurred while updating the booking");
+    } finally {
+      setProcessingAction(false);
+    }
+  };
+
+  // Submit delete request
+  const handleDeleteSubmit = async () => {
+    if (!selectedBooking) return;
+    
+    setProcessingAction(true);
+    try {
+      const res = await fetch(`/api/booking/admin/${selectedBooking._id}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${currentUser?.access_token}`
+        }
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to delete booking");
+      }
+      
+      // Remove booking from state
+      setBookings(prevBookings => prevBookings.filter(booking => booking._id !== selectedBooking._id));
+      
+      setSuccess("Booking deleted successfully");
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setSuccess(null);
+      }, 3000);
+      
+      setIsDeleteModalOpen(false);
+    } catch (err) {
+      setError(err.message || "An error occurred while deleting the booking");
+    } finally {
+      setProcessingAction(false);
+    }
+  };
+
   const getStatusIcon = (status) => {
     switch(status) {
       case 'approved':
@@ -301,8 +467,52 @@ const AdminBookingManagement = () => {
     }
   };
 
+  // Close error message
+  const closeError = () => {
+    setError(null);
+  };
+
+  // Close success message
+  const closeSuccess = () => {
+    setSuccess(null);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Success message */}
+      {success && (
+        <div className="fixed top-5 right-5 z-50 bg-green-50 border-l-4 border-green-500 p-4 rounded-md shadow-lg animate-fade-in-out max-w-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <FaCheck className="h-5 w-5 text-green-500" />
+            </div>
+            <div className="ml-3 flex justify-between w-full items-center">
+              <p className="text-sm text-green-700">{success}</p>
+              <button onClick={closeSuccess} className="text-green-500 hover:text-green-700">
+                <FaTimes />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error message */}
+      {error && (
+        <div className="fixed top-5 right-5 z-50 bg-red-50 border-l-4 border-red-500 p-4 rounded-md shadow-lg max-w-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <FaExclamationCircle className="h-5 w-5 text-red-500" />
+            </div>
+            <div className="ml-3 flex justify-between w-full items-center">
+              <p className="text-sm text-red-700">{error}</p>
+              <button onClick={closeError} className="text-red-500 hover:text-red-700">
+                <FaTimes />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dashboard Header */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -589,17 +799,39 @@ const AdminBookingManagement = () => {
                         </div>
                       </div>
                       
-                      {/* Third column: Status and Actions */}
-                      <div className="flex md:justify-end items-start">
+                      {/* Third column: Actions */}
+                      <div className="flex md:justify-end items-start space-x-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleViewProperty(booking);
                           }}
-                          className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center"
+                          className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center"
                         >
-                          <FaEye className="mr-2" />
+                          <FaEye className="mr-1" />
                           View Property
+                        </button>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditBooking(booking);
+                          }}
+                          className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-colors flex items-center"
+                        >
+                          <FaEdit className="mr-1" />
+                          Edit
+                        </button>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteBooking(booking);
+                          }}
+                          className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center"
+                        >
+                          <FaTrash className="mr-1" />
+                          Delete
                         </button>
                       </div>
                     </div>
@@ -611,7 +843,7 @@ const AdminBookingManagement = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Left Column: Booking Details */}
                         <div>
-                          <h4 className="font-semibold text-gray-800 mb-3">Booking Details</h4>
+                          <h4 className="font-medium text-gray-800 mb-3">Booking Details</h4>
                           <div className="bg-white rounded-lg p-4 border border-gray-200 space-y-3">
                             <DetailItem label="Property" value={getPropertyName(booking)} />
                             <DetailItem label="Contact Phone" value={booking.contact || "Not provided"} />
@@ -625,30 +857,50 @@ const AdminBookingManagement = () => {
                                 {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                               </span>
                             } />
-                            <DetailItem label="User Email" value={booking.user?.email || "Email not available"} />
                           </div>
                         </div>
                         
-                        {/* Right Column: Actions */}
+                        {/* Right Column: User Information */}
                         <div>
-                          <h4 className="font-semibold text-gray-800 mb-3">Property Management</h4>
-                          <div className="bg-white rounded-lg p-4 border border-gray-200">
-                            <div>
-                              <p className="text-sm text-gray-600 mb-4">Manage this property:</p>
-                              <div className="flex flex-wrap gap-3">
+                          <h4 className="font-medium text-gray-800 mb-3">User Information</h4>
+                          <div className="bg-white rounded-lg p-4 border border-gray-200 space-y-3">
+                            <DetailItem label="Username" value={getUserName(booking)} />
+                            <DetailItem label="Email" value={booking.user?.email || "Email not available"} />
+                            <DetailItem label="User ID" value={getBookingUserId(booking)} />
+                            
+                            <div className="pt-4 border-t border-gray-100 mt-2">
+                              <h5 className="font-medium text-gray-700 mb-2">Actions</h5>
+                              <div className="flex flex-wrap gap-2">
                                 <button
                                   onClick={() => handleViewProperty(booking)}
-                                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                                  className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
                                 >
-                                  <FaEye className="mr-2" />
+                                  <FaEye className="mr-1" />
                                   View Property
                                 </button>
+                                
                                 <button
                                   onClick={() => handleEditProperty(booking)}
-                                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+                                  className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
                                 >
-                                  <FaEdit className="mr-2" />
+                                  <FaEdit className="mr-1" />
                                   Edit Property
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleEditBooking(booking)}
+                                  className="px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors flex items-center"
+                                >
+                                  <FaEdit className="mr-1" />
+                                  Edit Booking
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleDeleteBooking(booking)}
+                                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                                >
+                                  <FaTrash className="mr-1" />
+                                  Delete Booking
                                 </button>
                               </div>
                             </div>
@@ -663,9 +915,226 @@ const AdminBookingManagement = () => {
           </div>
         )}
       </div>
+      
+      {/* Edit Booking Modal */}
+      {isEditModalOpen && selectedBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="border-b border-gray-200 px-6 py-4 bg-gray-50 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                <FaEdit className="mr-2 text-blue-600" />
+                Edit Booking
+              </h3>
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  name="status"
+                  value={editForm.status}
+                  onChange={handleEditFormChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                >
+                  <option value="">Select status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
+                <input
+                  type="date"
+                  name="preferredDate"
+                  value={editForm.preferredDate}
+                  onChange={handleEditFormChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={editForm.name}
+                  onChange={handleEditFormChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Address</label>
+                <input
+                  type="text"
+                  name="address"
+                  value={editForm.address}
+                  onChange={handleEditFormChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
+                <input
+                  type="text"
+                  name="contact"
+                  value={editForm.contact}
+                  onChange={handleEditFormChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+              </div>
+              
+              <div className="flex justify-end pt-4 border-t border-gray-200 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  disabled={processingAction}
+                >
+                  Cancel
+                </button>
+                
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                  disabled={processingAction}
+                >
+                  {processingAction ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <FaCheck className="mr-2" />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && selectedBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="border-b border-gray-200 px-6 py-4 bg-gray-50">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                <FaTrash className="mr-2 text-red-600" />
+                Confirm Deletion
+              </h3>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-6">
+                <p className="text-gray-700 mb-2">Are you sure you want to delete this booking?</p>
+                <p className="text-sm text-gray-500">This action cannot be undone.</p>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+                <p className="font-medium text-gray-800">Booking Details:</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  <span className="font-medium">Property:</span> {getPropertyName(selectedBooking)}
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  <span className="font-medium">Customer:</span> {selectedBooking.name}
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  <span className="font-medium">Date:</span> {getFormattedDate(selectedBooking.preferredDate)}
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  <span className="font-medium">Status:</span> {selectedBooking.status}
+                </p>
+              </div>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                  disabled={processingAction}
+                >
+                  Cancel
+                </button>
+                
+                <button
+                  onClick={handleDeleteSubmit}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                  disabled={processingAction}
+                >
+                  {processingAction ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash className="mr-2" />
+                      Delete Booking
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* CSS animations */}
+      <style jsx="true">{`
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translateY(-10px); }
+          10% { opacity: 1; transform: translateY(0); }
+          90% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-10px); }
+        }
+        .animate-fade-in-out {
+          animation: fadeInOut 3s ease-in-out forwards;
+        }
+        
+        @keyframes slideIn {
+          0% { transform: translateY(20px); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        .animate-slide-in {
+          animation: slideIn 0.3s ease-out forwards;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 768px) {
+          .grid-cols-3 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+          }
+          
+          .md\\:grid-cols-2 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+          }
+          
+          .md\\:grid-cols-3 {
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+          }
+        }
+      `}</style>
     </div>
   );
-}
+};
 
 // Helper component for detail items
 const DetailItem = ({ label, value }) => (

@@ -5,10 +5,10 @@ import {
   getUserBookings, 
   getLandlordBookings, 
   updateBookingStatus,
-  getAllBookings,       // New admin route
-  updateBooking,        // New admin route
-  deleteBooking,        // New admin route
-  getBookingStats       // New admin route
+  getAllBookings,
+  updateBooking,       
+  deleteBooking,        
+  getBookingStats      
 } from "../controllers/booking.controller.js";
 import { verifyToken, verifyAdmin } from "../utils/verifyUser.js";
 

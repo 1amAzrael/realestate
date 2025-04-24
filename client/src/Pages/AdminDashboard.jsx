@@ -1031,10 +1031,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {!isLoading && activeTab === "payments" && (
-                <AdminPaymentHistory />
-              )}
-
               <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
                 <SectionHeader 
                   title="Shifting Requests" 
@@ -1192,6 +1188,11 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+          
+          {/* This is where the AdminPaymentHistory component is properly rendered */}
+          {!isLoading && activeTab === "payments" && (
+            <AdminPaymentHistory />
+          )}
         </main>
       </div>
 
@@ -1222,9 +1223,6 @@ export default function AdminDashboard() {
         onInputChange={handleInputChange}
         onSave={handleAddWorker}
       />
-      {!isLoading && activeTab === "payments" && (
-  <AdminPaymentHistory />
-)}
 
       <EditWorkerModal
         isOpen={isEditWorkerModalOpen}

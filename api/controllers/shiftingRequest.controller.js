@@ -34,8 +34,7 @@ export const createShiftingRequest = async (req, res, next) => {
     });
 
     const savedRequest = await shiftingRequest.save(); // Save to the database
-    console.log("Shifting request saved:", savedRequest); // Debugging
-    
+    console.log("Shifting request saved:", savedRequest); 
     res.status(201).json({ 
       success: true, 
       message: "Shifting request created successfully",
@@ -88,11 +87,11 @@ export const updateShiftingRequestStatus = async (req, res, next) => {
 export const getUserShiftingRequests = async (req, res, next) => {
   try {
     const userId = req.params.userId;
-    const shiftingRequests = await ShiftingRequest.find({ userId }) // Changed from user to userId
+    const shiftingRequests = await ShiftingRequest.find({ userId }) 
       .populate("workerId", "name experience rate"); // Changed from worker to workerId
     
     res.status(200).json({ success: true, shiftingRequests });
   } catch (error) {
-    next(errorHandler(500, "Failed to fetch user shifting requests"));
+    next(errorHandler(500, "Failed to    user shifting requests"));
   }
 };
