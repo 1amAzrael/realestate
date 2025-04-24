@@ -316,28 +316,8 @@ const AdminBookingManagement = () => {
   // The bookings to display after filtering and sorting
   const sortedAndFilteredBookings = getSortedBookings();
   
-  // Handle view property - FIXED to use the proper ID extraction
-  const handleViewProperty = (booking) => {
-    const propertyId = getBookingPropertyId(booking);
-    if (propertyId) {
-      window.open(`/listing/${propertyId}`, '_blank');
-    } else {
-      console.error("Missing property ID");
-      setError("Unable to view property: ID not found");
-    }
-  };
   
-  // Handle edit property - FIXED to use the proper ID extraction
-  const handleEditProperty = (booking) => {
-    const propertyId = getBookingPropertyId(booking);
-    if (propertyId) {
-      window.open(`/update-listing/${propertyId}`, '_blank');
-    } else {
-      console.error("Missing property ID");
-      setError("Unable to edit property: ID not found");
-    }
-  };
-
+  
   // Handle edit booking
   const handleEditBooking = (booking) => {
     setSelectedBooking(booking);
@@ -801,16 +781,7 @@ const AdminBookingManagement = () => {
                       
                       {/* Third column: Actions */}
                       <div className="flex md:justify-end items-start space-x-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewProperty(booking);
-                          }}
-                          className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center"
-                        >
-                          <FaEye className="mr-1" />
-                          View Property
-                        </button>
+                        
                         
                         <button
                           onClick={(e) => {
@@ -871,21 +842,9 @@ const AdminBookingManagement = () => {
                             <div className="pt-4 border-t border-gray-100 mt-2">
                               <h5 className="font-medium text-gray-700 mb-2">Actions</h5>
                               <div className="flex flex-wrap gap-2">
-                                <button
-                                  onClick={() => handleViewProperty(booking)}
-                                  className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                                >
-                                  <FaEye className="mr-1" />
-                                  View Property
-                                </button>
                                 
-                                <button
-                                  onClick={() => handleEditProperty(booking)}
-                                  className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
-                                >
-                                  <FaEdit className="mr-1" />
-                                  Edit Property
-                                </button>
+                                
+                              
                                 
                                 <button
                                   onClick={() => handleEditBooking(booking)}

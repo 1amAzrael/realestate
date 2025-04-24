@@ -1,4 +1,4 @@
-// UserBookings.jsx
+// UserBookings.jsx - Final Fixed Version
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import {
 function UserBookings() {
   const { currentUser } = useSelector((state) => state.user);
   const [bookings, setBookings] = useState([]);
+  const [properties, setProperties] = useState({}); // Map to store property details including images
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('');
@@ -18,6 +19,7 @@ function UserBookings() {
   const [sortOrder, setSortOrder] = useState('newest');
   const navigate = useNavigate();
 
+  // First, fetch bookings
   useEffect(() => {
     const fetchBookings = async () => {
       try {
@@ -30,16 +32,69 @@ function UserBookings() {
           setLoading(false);
           return;
         }
-        console.log("Bookings data:", data); 
+
         setBookings(data.bookings || data);
-        setLoading(false);
+        
+        // Get all unique listing IDs to fetch their full details
+        const listingIds = [...new Set((data.bookings || data).map(booking => 
+          booking.listingId && typeof booking.listingId === 'object' ? 
+            booking.listingId._id : booking.listingId
+        ))].filter(Boolean);
+        
+        return listingIds;
       } catch (err) {
+        console.error("Error fetching bookings:", err);
         setError("Failed to load bookings");
+        setLoading(false);
+        return [];
+      }
+    };
+
+    const fetchPropertyDetails = async (listingIds) => {
+      try {
+        // Create a map to store property details
+        const propertyMap = {};
+
+        // Fetch each property's full details
+        const fetchPromises = listingIds.map(async (id) => {
+          try {
+            const res = await fetch(`/api/listing/get/${id}`);
+            const data = await res.json();
+            
+            if (!res.ok) {
+              console.log(`Failed to fetch property ${id}: ${data.message || 'Unknown error'}`);
+              return;
+            }
+            
+            // Add to property map
+            propertyMap[id] = data;
+          } catch (error) {
+            console.log(`Error fetching property ${id}:`, error);
+          }
+        });
+
+        // Wait for all fetch operations to complete
+        await Promise.all(fetchPromises);
+        
+        // Update state with property details
+        setProperties(propertyMap);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching property details:", error);
         setLoading(false);
       }
     };
 
-    fetchBookings();
+    const loadAllData = async () => {
+      const listingIds = await fetchBookings();
+      if (listingIds.length > 0) {
+        await fetchPropertyDetails(listingIds);
+      } else {
+        setLoading(false);
+      }
+    };
+
+    loadAllData();
   }, [currentUser._id]);
 
   const getStatusBadge = (status) => {
@@ -68,8 +123,70 @@ function UserBookings() {
     }
   };
 
-  const handleViewListing = (listingId) => {
-    navigate(`/listing/${listingId}?booked=true`);
+  const getListingId = (booking) => {
+    if (booking.listingId && typeof booking.listingId === 'object' && booking.listingId._id) {
+      return booking.listingId._id;
+    }
+    return booking.listingId;
+  };
+
+  const getListingImage = (booking) => {
+    const listingId = getListingId(booking);
+    if (!listingId) return null;
+    
+    // Get full property details from our properties map
+    const propertyDetails = properties[listingId];
+    
+    // If we have property details with images, return the first image
+    if (propertyDetails && propertyDetails.imageURL && propertyDetails.imageURL.length > 0) {
+      return propertyDetails.imageURL[0];
+    }
+    
+    return null;
+  };
+
+  const getListingName = (booking) => {
+    // First check if it's in the booking object
+    if (booking.listingId && typeof booking.listingId === 'object' && booking.listingId.name) {
+      return booking.listingId.name;
+    }
+    
+    // Then check our properties map
+    const listingId = getListingId(booking);
+    if (listingId && properties[listingId] && properties[listingId].name) {
+      return properties[listingId].name;
+    }
+    
+    return "Unknown Property";
+  };
+
+  const getListingAddress = (booking) => {
+    // First check if it's in the booking object
+    if (booking.listingId && typeof booking.listingId === 'object' && booking.listingId.address) {
+      return booking.listingId.address;
+    }
+    
+    // Then check our properties map
+    const listingId = getListingId(booking);
+    if (listingId && properties[listingId] && properties[listingId].address) {
+      return properties[listingId].address;
+    }
+    
+    // Fallback to booking address if available
+    if (booking.address) {
+      return booking.address;
+    }
+    
+    return "Address unavailable";
+  };
+
+  const handleViewListing = (booking) => {
+    const listingId = getListingId(booking);
+    if (listingId) {
+      navigate(`/listing/${listingId}?booked=true`);
+    } else {
+      console.error("Cannot view listing - ID not found");
+    }
   };
 
   const handleFilterChange = (e) => {
@@ -89,9 +206,10 @@ function UserBookings() {
   // Filter and sort bookings
   const getFilteredAndSortedBookings = () => {
     // First filter
-    let result = bookings.filter(booking =>
-      booking.listingId?.name?.toLowerCase().includes(filter.toLowerCase())
-    );
+    let result = bookings.filter(booking => {
+      const listingName = getListingName(booking);
+      return listingName.toLowerCase().includes(filter.toLowerCase());
+    });
 
     // Then sort
     if (sortOrder === 'newest') {
@@ -112,6 +230,16 @@ function UserBookings() {
     approved: filteredBookings.filter(booking => booking.status === 'approved'),
     pending: filteredBookings.filter(booking => booking.status === 'pending'),
     rejected: filteredBookings.filter(booking => booking.status === 'rejected')
+  };
+
+  // Format date helper function
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   if (loading) {
@@ -249,15 +377,28 @@ function UserBookings() {
             </div>
 
             <div className="space-y-6">
-              {filteredBookings.map((booking) => (
+              {filteredBookings.map((booking) => {
+                const imageUrl = getListingImage(booking);
+                return (
                 <div key={booking._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border border-gray-100">
                   <div className="md:flex">
                     <div className="md:flex-shrink-0 w-full md:w-64 h-48 bg-gray-200 relative">
-                      {booking.listingId?.imageURL && booking.listingId.imageURL[0] ? (
+                      {imageUrl ? (
                         <img
-                          src={booking.listingId.imageURL[0]}
-                          alt={booking.listingId.name}
+                          src={imageUrl}
+                          alt={getListingName(booking)}
                           className="h-full w-full object-cover"
+                          onError={(e) => {
+                            console.error("Image load error:", e);
+                            e.target.onerror = null;
+                            e.target.src = ""; // Clear the src
+                            e.target.style.display = "none";
+                            // Show a placeholder
+                            const placeholder = document.createElement('div');
+                            placeholder.className = "h-full w-full flex items-center justify-center bg-gray-200 text-gray-400";
+                            placeholder.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>';
+                            e.target.parentNode.appendChild(placeholder);
+                          }}
                         />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center bg-gray-200 text-gray-400">
@@ -273,11 +414,11 @@ function UserBookings() {
                       <div className="flex flex-col h-full">
                         <div>
                           <h3 className="text-xl font-bold text-gray-900 mb-1 hover:text-blue-600 transition-colors">
-                            {booking.listingId?.name || 'Unknown Property'}
+                            {getListingName(booking)}
                           </h3>
                           <p className="flex items-center text-gray-600 text-sm mb-4">
                             <FaMapMarkerAlt className="mr-1 text-gray-400" />
-                            {booking.listingId?.address || 'Unknown Address'}
+                            {getListingAddress(booking)}
                           </p>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -285,22 +426,14 @@ function UserBookings() {
                               <p className="flex items-center text-sm text-blue-800">
                                 <FaRegCalendarAlt className="mr-2 text-blue-500" />
                                 <span className="font-medium">Visit Date:</span>
-                                <span className="ml-2">{new Date(booking.preferredDate).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}</span>
+                                <span className="ml-2">{formatDate(booking.preferredDate)}</span>
                               </p>
                             </div>
                             <div className="bg-gray-50 rounded-lg p-3">
                               <p className="flex items-center text-sm text-gray-700">
                                 <FaRegCalendarAlt className="mr-2 text-gray-500" />
                                 <span className="font-medium">Booked on:</span>
-                                <span className="ml-2">{new Date(booking.createdAt).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}</span>
+                                <span className="ml-2">{formatDate(booking.createdAt)}</span>
                               </p>
                             </div>
                           </div>
@@ -314,7 +447,7 @@ function UserBookings() {
 
                           {booking.status === 'approved' && (
                             <button
-                              onClick={() => handleViewListing(booking.listingId._id)}
+                              onClick={() => handleViewListing(booking)}
                               className="flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors shadow-md"
                             >
                               <FaEye className="mr-2" />
@@ -352,7 +485,7 @@ function UserBookings() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         )}
@@ -360,6 +493,5 @@ function UserBookings() {
     </div>
   );
 }
-
 
 export default UserBookings;
