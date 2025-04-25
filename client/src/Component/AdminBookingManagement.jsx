@@ -1,12 +1,11 @@
-// AdminBookingManagement.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { 
   FaCalendarAlt, FaSearch, FaFilter, FaSortAmountDown, 
-  FaEye, FaHome, FaUser, FaMapMarkerAlt, FaCalendarCheck, 
+  FaUser, FaMapMarkerAlt, FaCalendarCheck, 
   FaEdit, FaExclamationCircle, FaCheck, FaTimes, FaClock,
-  FaTrash, FaSpinner, FaInfoCircle, FaPhone, FaEnvelope
+  FaTrash, FaSpinner
 } from "react-icons/fa";
 import { format, parseISO } from 'date-fns';
 
@@ -23,7 +22,6 @@ const AdminBookingManagement = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [processingAction, setProcessingAction] = useState(false);
   
-  // Filtering states
   const [filters, setFilters] = useState({
     dateRange: { startDate: "", endDate: "" },
     propertyId: "",
@@ -31,19 +29,14 @@ const AdminBookingManagement = () => {
     status: ""
   });
   
-  // Sorting states
   const [sortCriteria, setSortCriteria] = useState("preferredDate");
   const [sortOrder, setSortOrder] = useState("desc");
-  
-  // UI states
   const [expandedBookingId, setExpandedBookingId] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Get current user
   const { currentUser } = useSelector((state) => state.user);
 
-  // Edit form state
   const [editForm, setEditForm] = useState({
     status: "",
     preferredDate: "",
@@ -53,50 +46,36 @@ const AdminBookingManagement = () => {
   });
 
   useEffect(() => {
-    // Fetch all bookings, properties, and users when component mounts
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch bookings
         const bookingsRes = await fetch("/api/booking/all", {
           headers: {
             "Authorization": `Bearer ${currentUser?.access_token}`
           }
         });
         
-        if (!bookingsRes.ok) {
-          throw new Error("Failed to fetch bookings");
-        }
-        
+        if (!bookingsRes.ok) throw new Error("Failed to fetch bookings");
         const bookingsData = await bookingsRes.json();
         
-        // Fetch properties (listings)
         const propertiesRes = await fetch("/api/listing/all", {
           headers: {
             "Authorization": `Bearer ${currentUser?.access_token}`
           }
         });
         
-        if (!propertiesRes.ok) {
-          throw new Error("Failed to fetch properties");
-        }
-        
+        if (!propertiesRes.ok) throw new Error("Failed to fetch properties");
         const propertiesData = await propertiesRes.json();
         
-        // Fetch users
         const usersRes = await fetch("/api/user/all", {
           headers: {
             "Authorization": `Bearer ${currentUser?.access_token}`
           }
         });
         
-        if (!usersRes.ok) {
-          throw new Error("Failed to fetch users");
-        }
-        
+        if (!usersRes.ok) throw new Error("Failed to fetch users");
         const usersData = await usersRes.json();
         
-        // Process bookings to include property and user information
         const processedBookings = bookingsData.map(booking => {
           const property = propertiesData.find(p => p._id === (booking.listingId?._id || booking.listingId));
           const user = usersData.find(u => u._id === (booking.userId?._id || booking.userId));
@@ -108,7 +87,6 @@ const AdminBookingManagement = () => {
           };
         });
         
-        // Set state with fetched data
         setBookings(processedBookings);
         setProperties(propertiesData);
         setUsers(usersData);
@@ -123,7 +101,6 @@ const AdminBookingManagement = () => {
     fetchData();
   }, [currentUser]);
 
-  // Update edit form when a booking is selected
   useEffect(() => {
     if (selectedBooking) {
       setEditForm({
@@ -136,36 +113,19 @@ const AdminBookingManagement = () => {
     }
   }, [selectedBooking]);
 
-  // Filter bookings based on current filters and search query
   const getFilteredBookings = () => {
     return bookings.filter(booking => {
-      // Filter by date range
       if (filters.dateRange.startDate && filters.dateRange.endDate) {
         const bookingDate = new Date(booking.preferredDate);
         const startDate = new Date(filters.dateRange.startDate);
         const endDate = new Date(filters.dateRange.endDate);
-        
-        if (bookingDate < startDate || bookingDate > endDate) {
-          return false;
-        }
+        if (bookingDate < startDate || bookingDate > endDate) return false;
       }
       
-      // Filter by property
-      if (filters.propertyId && getBookingPropertyId(booking) !== filters.propertyId) {
-        return false;
-      }
+      if (filters.propertyId && getBookingPropertyId(booking) !== filters.propertyId) return false;
+      if (filters.userId && getBookingUserId(booking) !== filters.userId) return false;
+      if (filters.status && booking.status !== filters.status) return false;
       
-      // Filter by user
-      if (filters.userId && getBookingUserId(booking) !== filters.userId) {
-        return false;
-      }
-      
-      // Filter by status
-      if (filters.status && booking.status !== filters.status) {
-        return false;
-      }
-      
-      // Search by property name, or user name
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const property = booking.property;
@@ -184,7 +144,6 @@ const AdminBookingManagement = () => {
     });
   };
   
-  // Sort filtered bookings based on sort criteria and order
   const getSortedBookings = () => {
     const filteredBookings = getFilteredBookings();
     
@@ -205,58 +164,38 @@ const AdminBookingManagement = () => {
           valueB = b.preferredDate;
       }
       
-      if (sortOrder === "asc") {
-        return valueA > valueB ? 1 : -1;
-      } else {
-        return valueA < valueB ? 1 : -1;
-      }
+      return sortOrder === "asc" ? (valueA > valueB ? 1 : -1) : (valueA < valueB ? 1 : -1);
     });
   };
   
-  // Helper function to safely get the property ID from a booking
   const getBookingPropertyId = (booking) => {
-    // Check if listingId is an object with _id property
     if (booking.listingId && typeof booking.listingId === 'object' && booking.listingId._id) {
       return booking.listingId._id;
     }
-    // Otherwise assume listingId is the ID itself
     return booking.listingId;
   };
   
-  // Helper function to safely get the user ID from a booking
   const getBookingUserId = (booking) => {
-    // Check if userId is an object with _id property
     if (booking.userId && typeof booking.userId === 'object' && booking.userId._id) {
       return booking.userId._id;
     }
-    // Otherwise assume userId is the ID itself
     return booking.userId;
   };
   
-  // Get property name by ID
   const getPropertyName = (booking) => {
-    if (booking.property && booking.property.name) {
-      return booking.property.name;
-    }
-    
+    if (booking.property && booking.property.name) return booking.property.name;
     const property = properties.find(p => p._id === getBookingPropertyId(booking));
     return property ? property.name : "Property details unavailable";
   };
   
-  // Get user name by ID
   const getUserName = (booking) => {
-    if (booking.user && booking.user.username) {
-      return booking.user.username;
-    }
-    
+    if (booking.user && booking.user.username) return booking.user.username;
     const user = users.find(u => u._id === getBookingUserId(booking));
     return user ? user.username : "User details unavailable";
   };
   
-  // Get formatted date
   const getFormattedDate = (dateString) => {
     if (!dateString) return "N/A";
-    
     try {
       return format(parseISO(dateString), "PPP");
     } catch (error) {
@@ -264,7 +203,6 @@ const AdminBookingManagement = () => {
     }
   };
   
-  // Reset all filters
   const resetFilters = () => {
     setFilters({
       dateRange: { startDate: "", endDate: "" },
@@ -275,7 +213,6 @@ const AdminBookingManagement = () => {
     setSearchQuery("");
   };
   
-  // Handle filter change
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     
@@ -296,41 +233,29 @@ const AdminBookingManagement = () => {
     }
   };
   
-  // Handle sort change
   const handleSortChange = (criteria) => {
     if (sortCriteria === criteria) {
-      // Toggle sort order if clicking the same criteria
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
-      // Set new criteria and default to descending order
       setSortCriteria(criteria);
       setSortOrder("desc");
     }
   };
   
-  // Toggle expanded booking details
   const toggleExpandBooking = (bookingId) => {
     setExpandedBookingId(expandedBookingId === bookingId ? null : bookingId);
   };
   
-  // The bookings to display after filtering and sorting
-  const sortedAndFilteredBookings = getSortedBookings();
-  
-  
-  
-  // Handle edit booking
   const handleEditBooking = (booking) => {
     setSelectedBooking(booking);
     setIsEditModalOpen(true);
   };
 
-  // Handle delete booking
   const handleDeleteBooking = (booking) => {
     setSelectedBooking(booking);
     setIsDeleteModalOpen(true);
   };
 
-  // Handle edit form change
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
     setEditForm(prev => ({
@@ -339,7 +264,6 @@ const AdminBookingManagement = () => {
     }));
   };
 
-  // Submit edit form
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!selectedBooking) return;
@@ -348,7 +272,6 @@ const AdminBookingManagement = () => {
     try {
       const updateData = {};
       
-      // Only include fields that have been changed
       if (editForm.status !== selectedBooking.status) updateData.status = editForm.status;
       if (editForm.preferredDate !== new Date(selectedBooking.preferredDate).toISOString().split('T')[0]) {
         updateData.preferredDate = editForm.preferredDate;
@@ -357,7 +280,6 @@ const AdminBookingManagement = () => {
       if (editForm.address !== selectedBooking.address) updateData.address = editForm.address;
       if (editForm.contact !== selectedBooking.contact) updateData.contact = editForm.contact;
       
-      // Only send request if there are changes
       if (Object.keys(updateData).length === 0) {
         setIsEditModalOpen(false);
         setProcessingAction(false);
@@ -380,18 +302,12 @@ const AdminBookingManagement = () => {
       
       const data = await res.json();
       
-      // Update booking in state
       setBookings(prevBookings => prevBookings.map(booking => 
         booking._id === selectedBooking._id ? { ...booking, ...data.booking } : booking
       ));
       
       setSuccess("Booking updated successfully");
-      
-      // Hide success message after 3 seconds
-      setTimeout(() => {
-        setSuccess(null);
-      }, 3000);
-      
+      setTimeout(() => setSuccess(null), 3000);
       setIsEditModalOpen(false);
     } catch (err) {
       setError(err.message || "An error occurred while updating the booking");
@@ -400,7 +316,6 @@ const AdminBookingManagement = () => {
     }
   };
 
-  // Submit delete request
   const handleDeleteSubmit = async () => {
     if (!selectedBooking) return;
     
@@ -418,16 +333,9 @@ const AdminBookingManagement = () => {
         throw new Error(errorData.message || "Failed to delete booking");
       }
       
-      // Remove booking from state
       setBookings(prevBookings => prevBookings.filter(booking => booking._id !== selectedBooking._id));
-      
       setSuccess("Booking deleted successfully");
-      
-      // Hide success message after 3 seconds
-      setTimeout(() => {
-        setSuccess(null);
-      }, 3000);
-      
+      setTimeout(() => setSuccess(null), 3000);
       setIsDeleteModalOpen(false);
     } catch (err) {
       setError(err.message || "An error occurred while deleting the booking");
@@ -438,28 +346,19 @@ const AdminBookingManagement = () => {
 
   const getStatusIcon = (status) => {
     switch(status) {
-      case 'approved':
-        return <FaCheck className="mr-2 text-green-600" />;
-      case 'rejected':
-        return <FaTimes className="mr-2 text-red-600" />;
-      default:
-        return <FaClock className="mr-2 text-yellow-600" />;
+      case 'approved': return <FaCheck className="mr-2 text-green-600" />;
+      case 'rejected': return <FaTimes className="mr-2 text-red-600" />;
+      default: return <FaClock className="mr-2 text-yellow-600" />;
     }
   };
 
-  // Close error message
-  const closeError = () => {
-    setError(null);
-  };
+  const closeError = () => setError(null);
+  const closeSuccess = () => setSuccess(null);
 
-  // Close success message
-  const closeSuccess = () => {
-    setSuccess(null);
-  };
+  const sortedAndFilteredBookings = getSortedBookings();
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Success message */}
       {success && (
         <div className="fixed top-5 right-5 z-50 bg-green-50 border-l-4 border-green-500 p-4 rounded-md shadow-lg animate-fade-in-out max-w-md">
           <div className="flex">
@@ -476,7 +375,6 @@ const AdminBookingManagement = () => {
         </div>
       )}
 
-      {/* Error message */}
       {error && (
         <div className="fixed top-5 right-5 z-50 bg-red-50 border-l-4 border-red-500 p-4 rounded-md shadow-lg max-w-md">
           <div className="flex">
@@ -493,7 +391,6 @@ const AdminBookingManagement = () => {
         </div>
       )}
 
-      {/* Dashboard Header */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="mb-4 md:mb-0">
@@ -506,7 +403,6 @@ const AdminBookingManagement = () => {
             </p>
           </div>
           
-          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="bg-blue-50 rounded-lg p-3 flex flex-col items-center">
               <span className="text-blue-800 text-sm font-medium">Total Bookings</span>
@@ -528,10 +424,8 @@ const AdminBookingManagement = () => {
         </div>
       </div>
       
-      {/* Search and Filters */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
         <div className="flex flex-col md:flex-row md:items-center mb-6 gap-4">
-          {/* Search Bar */}
           <div className="flex-grow relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FaSearch className="text-gray-400" />
@@ -545,7 +439,6 @@ const AdminBookingManagement = () => {
             />
           </div>
           
-          {/* Filter Toggle Button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
@@ -554,7 +447,6 @@ const AdminBookingManagement = () => {
             {showFilters ? "Hide Filters" : "Show Filters"}
           </button>
           
-          {/* Sort Dropdown */}
           <div className="relative">
             <select
               value={`${sortCriteria}_${sortOrder}`}
@@ -576,11 +468,9 @@ const AdminBookingManagement = () => {
           </div>
         </div>
         
-        {/* Advanced Filters */}
         {showFilters && (
           <div className="pt-4 border-t border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {/* Date Range Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   From Date
@@ -607,7 +497,6 @@ const AdminBookingManagement = () => {
                 />
               </div>
               
-              {/* Property Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Property
@@ -627,7 +516,6 @@ const AdminBookingManagement = () => {
                 </select>
               </div>
               
-              {/* User Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   User
@@ -647,7 +535,6 @@ const AdminBookingManagement = () => {
                 </select>
               </div>
               
-              {/* Status Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Status
@@ -678,7 +565,6 @@ const AdminBookingManagement = () => {
         )}
       </div>
       
-      {/* Bookings List */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
           <h2 className="font-semibold text-gray-800">
@@ -736,10 +622,8 @@ const AdminBookingManagement = () => {
                 <div key={booking._id} className="transition-all duration-200 hover:bg-gray-50">
                   <div className="p-6 cursor-pointer" onClick={() => toggleExpandBooking(booking._id)}>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* First column: Property and User info */}
                       <div>
-                        <h3 className="font-bold text-gray-900 mb-1 flex items-center">
-                          <FaHome className="text-blue-500 mr-2" />
+                        <h3 className="font-bold text-gray-900 mb-1">
                           {getPropertyName(booking)}
                         </h3>
                         <p className="text-sm text-gray-600 flex items-center mb-3">
@@ -753,7 +637,6 @@ const AdminBookingManagement = () => {
                         </p>
                       </div>
                       
-                      {/* Second column: Dates and Status */}
                       <div>
                         <div className="flex items-center mb-2">
                           <FaCalendarCheck className="text-green-500 mr-2" />
@@ -779,10 +662,7 @@ const AdminBookingManagement = () => {
                         </div>
                       </div>
                       
-                      {/* Third column: Actions */}
                       <div className="flex md:justify-end items-start space-x-2">
-                        
-                        
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -808,11 +688,9 @@ const AdminBookingManagement = () => {
                     </div>
                   </div>
                   
-                  {/* Expanded Details */}
                   {isExpanded && (
                     <div className="px-6 pb-6 pt-2 border-t border-gray-100 bg-gray-50 rounded-b-lg">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Left Column: Booking Details */}
                         <div>
                           <h4 className="font-medium text-gray-800 mb-3">Booking Details</h4>
                           <div className="bg-white rounded-lg p-4 border border-gray-200 space-y-3">
@@ -831,7 +709,6 @@ const AdminBookingManagement = () => {
                           </div>
                         </div>
                         
-                        {/* Right Column: User Information */}
                         <div>
                           <h4 className="font-medium text-gray-800 mb-3">User Information</h4>
                           <div className="bg-white rounded-lg p-4 border border-gray-200 space-y-3">
@@ -842,12 +719,11 @@ const AdminBookingManagement = () => {
                             <div className="pt-4 border-t border-gray-100 mt-2">
                               <h5 className="font-medium text-gray-700 mb-2">Actions</h5>
                               <div className="flex flex-wrap gap-2">
-                                
-                                
-                              
-                                
                                 <button
-                                  onClick={() => handleEditBooking(booking)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditBooking(booking);
+                                  }}
                                   className="px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors flex items-center"
                                 >
                                   <FaEdit className="mr-1" />
@@ -855,7 +731,10 @@ const AdminBookingManagement = () => {
                                 </button>
                                 
                                 <button
-                                  onClick={() => handleDeleteBooking(booking)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteBooking(booking);
+                                  }}
                                   className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
                                 >
                                   <FaTrash className="mr-1" />
@@ -875,7 +754,6 @@ const AdminBookingManagement = () => {
         )}
       </div>
       
-      {/* Edit Booking Modal */}
       {isEditModalOpen && selectedBooking && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -990,7 +868,6 @@ const AdminBookingManagement = () => {
         </div>
       )}
       
-      {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && selectedBooking && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
@@ -1054,48 +931,10 @@ const AdminBookingManagement = () => {
           </div>
         </div>
       )}
-      
-      {/* CSS animations */}
-      <style jsx="true">{`
-        @keyframes fadeInOut {
-          0% { opacity: 0; transform: translateY(-10px); }
-          10% { opacity: 1; transform: translateY(0); }
-          90% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-10px); }
-        }
-        .animate-fade-in-out {
-          animation: fadeInOut 3s ease-in-out forwards;
-        }
-        
-        @keyframes slideIn {
-          0% { transform: translateY(20px); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
-        }
-        
-        .animate-slide-in {
-          animation: slideIn 0.3s ease-out forwards;
-        }
-        
-        /* Responsive styles */
-        @media (max-width: 768px) {
-          .grid-cols-3 {
-            grid-template-columns: repeat(1, minmax(0, 1fr));
-          }
-          
-          .md\\:grid-cols-2 {
-            grid-template-columns: repeat(1, minmax(0, 1fr));
-          }
-          
-          .md\\:grid-cols-3 {
-            grid-template-columns: repeat(1, minmax(0, 1fr));
-          }
-        }
-      `}</style>
     </div>
   );
 };
 
-// Helper component for detail items
 const DetailItem = ({ label, value }) => (
   <div className="flex flex-wrap items-start">
     <span className="text-gray-500 text-sm w-36">{label}:</span>
