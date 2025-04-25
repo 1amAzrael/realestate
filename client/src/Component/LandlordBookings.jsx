@@ -11,6 +11,7 @@ import {
 function LandlordBookings() {
   const { currentUser } = useSelector((state) => state.user);
   const [bookings, setBookings] = useState([]);
+  const [properties, setProperties] = useState({}); // Map to store property details including images
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -18,6 +19,7 @@ function LandlordBookings() {
   const [sortOrder, setSortOrder] = useState('newest');
   const [processingBookingId, setProcessingBookingId] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
 
   // Fetch bookings on initial load
@@ -35,15 +37,68 @@ function LandlordBookings() {
         }
         
         // Ensure bookings are set correctly
-        setBookings(data.bookings || data);
-        setLoading(false);
+        const bookingsData = data.bookings || data;
+        setBookings(bookingsData);
+        
+        // Get all unique listing IDs to fetch their full details
+        const listingIds = [...new Set(bookingsData.map(booking => 
+          booking.listingId && typeof booking.listingId === 'object' ? 
+            booking.listingId._id : booking.listingId
+        ))].filter(Boolean);
+        
+        return listingIds;
       } catch (err) {
         setError("Failed to load booking requests");
+        setLoading(false);
+        return [];
+      }
+    };
+
+    const fetchPropertyDetails = async (listingIds) => {
+      try {
+        // Create a map to store property details
+        const propertyMap = {};
+
+        // Fetch each property's full details
+        const fetchPromises = listingIds.map(async (id) => {
+          try {
+            const res = await fetch(`/api/listing/get/${id}`);
+            const data = await res.json();
+            
+            if (!res.ok) {
+              console.log(`Failed to fetch property ${id}: ${data.message || 'Unknown error'}`);
+              return;
+            }
+            
+            // Add to property map
+            propertyMap[id] = data;
+          } catch (error) {
+            console.log(`Error fetching property ${id}:`, error);
+          }
+        });
+
+        // Wait for all fetch operations to complete
+        await Promise.all(fetchPromises);
+        
+        // Update state with property details
+        setProperties(propertyMap);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching property details:", error);
         setLoading(false);
       }
     };
 
-    fetchBookings();
+    const loadAllData = async () => {
+      const listingIds = await fetchBookings();
+      if (listingIds && listingIds.length > 0) {
+        await fetchPropertyDetails(listingIds);
+      } else {
+        setLoading(false);
+      }
+    };
+
+    loadAllData();
   }, [currentUser._id]);
 
   // Handle updating booking status
@@ -85,17 +140,95 @@ function LandlordBookings() {
         setSuccessMessage(null);
       }, 3000);
       
-    } catch (err) {
-      setError("Failed to update booking status");
+    } catch (error) {
+      setError(error.message);
+      console.error("Error updating booking status:", error);
       setProcessingBookingId(null);
     }
   };
 
-  // Filter and sort bookings based on search, status filter, and sort order
+  // Get listing ID helper function
+  const getListingId = (booking) => {
+    if (booking.listingId && typeof booking.listingId === 'object' && booking.listingId._id) {
+      return booking.listingId._id;
+    }
+    return booking.listingId;
+  };
+
+  // Get listing image helper function
+  const getListingImage = (booking) => {
+    const listingId = getListingId(booking);
+    if (!listingId) return null;
+    
+    // Get full property details from our properties map
+    const propertyDetails = properties[listingId];
+    
+    // If we have property details with images, return the first image
+    if (propertyDetails && propertyDetails.imageURL && propertyDetails.imageURL.length > 0) {
+      return propertyDetails.imageURL[0];
+    }
+    
+    return null;
+  };
+
+  // Get listing name helper function
+  const getListingName = (booking) => {
+    // First check if it's in the booking object
+    if (booking.listingId && typeof booking.listingId === 'object' && booking.listingId.name) {
+      return booking.listingId.name;
+    }
+    
+    // Then check our properties map
+    const listingId = getListingId(booking);
+    if (listingId && properties[listingId] && properties[listingId].name) {
+      return properties[listingId].name;
+    }
+    
+    return "Unknown Property";
+  };
+
+  // Get listing address helper function
+  const getListingAddress = (booking) => {
+    // First check if it's in the booking object
+    if (booking.listingId && typeof booking.listingId === 'object' && booking.listingId.address) {
+      return booking.listingId.address;
+    }
+    
+    // Then check our properties map
+    const listingId = getListingId(booking);
+    if (listingId && properties[listingId] && properties[listingId].address) {
+      return properties[listingId].address;
+    }
+    
+    // Fallback to booking address if available
+    if (booking.address) {
+      return booking.address;
+    }
+    
+    return "Address unavailable";
+  };
+
+  // Get property type helper function
+  const getPropertyType = (booking) => {
+    // First check if it's in the booking object
+    if (booking.listingId && typeof booking.listingId === 'object' && booking.listingId.type) {
+      return booking.listingId.type;
+    }
+    
+    // Then check our properties map
+    const listingId = getListingId(booking);
+    if (listingId && properties[listingId] && properties[listingId].type) {
+      return properties[listingId].type;
+    }
+    
+    return null;
+  };
+
+  // Filter and sort bookings
   const getFilteredAndSortedBookings = () => {
     // First filter by search term
     let filtered = bookings.filter(booking => 
-      booking.listingId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      getListingName(booking).toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     
@@ -139,8 +272,29 @@ function LandlordBookings() {
   };
 
   // Handle view listing
-  const handleViewListing = (listingId) => {
-    navigate(`/listing/${listingId}`);
+  const handleViewListing = (booking) => {
+    const listingId = getListingId(booking);
+    if (listingId) {
+      navigate(`/listing/${listingId}`);
+    } else {
+      console.error("Missing property ID");
+      alert("Unable to view property: ID not found");
+    }
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch (error) {
+      return "Invalid Date";
+    }
   };
 
   // Loading state
@@ -392,26 +546,50 @@ function LandlordBookings() {
                 <div className="md:flex">
                   {/* Property Info */}
                   <div className="md:w-1/3 bg-gray-50 p-6 flex flex-col">
+                    {/* Added image display with proper error handling */}
+                    <div className="h-48 bg-gray-200 rounded-lg overflow-hidden mb-4">
+                      {getListingImage(booking) ? (
+                        <img
+                          src={getListingImage(booking)}
+                          alt={getListingName(booking)}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "";
+                            e.target.style.display = "none";
+                            const placeholder = document.createElement('div');
+                            placeholder.className = "h-full w-full flex items-center justify-center bg-gray-200 text-gray-400";
+                            placeholder.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>';
+                            e.target.parentNode.appendChild(placeholder);
+                          }}
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-gray-200 text-gray-400">
+                          <FaHome className="h-12 w-12" />
+                        </div>
+                      )}
+                    </div>
+                    
                     <h3 className="text-xl font-bold text-gray-900 mb-2">
-                      {booking.listingId?.name || 'Unknown Property'}
+                      {getListingName(booking)}
                     </h3>
                     
                     <p className="flex items-center text-gray-600 mb-3">
                       <FaMapMarkerAlt className="mr-2 text-gray-400 flex-shrink-0" />
-                      {booking.listingId?.address || 'Address unavailable'}
+                      {getListingAddress(booking)}
                     </p>
                     
                     <div className="mt-auto">
                       <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        booking.listingId?.type === 'rent'
+                        getPropertyType(booking) === 'rent'
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-green-100 text-green-800'
                       }`}>
-                        {booking.listingId?.type === 'rent' ? 'For Rent' : 'For Sale'}
+                        {getPropertyType(booking) === 'rent' ? 'For Rent' : 'For Sale'}
                       </div>
                       
                       <button
-                        onClick={() => booking.listingId && handleViewListing(booking.listingId._id)}
+                        onClick={() => handleViewListing(booking)}
                         className="mt-4 inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
                       >
                         <FaEye className="mr-1" />
@@ -459,11 +637,7 @@ function LandlordBookings() {
                         <p className="flex items-center">
                           <FaCalendarAlt className="mr-2 text-blue-500" />
                           <span className="font-medium text-gray-800">
-                            {new Date(booking.preferredDate).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
+                            {formatDate(booking.preferredDate)}
                           </span>
                         </p>
                       </div>
@@ -515,7 +689,7 @@ function LandlordBookings() {
                     {(booking.status === 'approved' || booking.status === 'rejected') && (
                       <div className="mt-4 bg-gray-50 p-3 rounded-lg border-l-4 border-gray-300">
                         <p className="text-gray-500 text-sm">
-                          This booking was {booking.status} on {new Date(booking.updatedAt || booking.createdAt).toLocaleDateString()}.
+                          This booking was {booking.status} on {formatDate(booking.updatedAt || booking.createdAt)}.
                           {booking.status === 'approved' && ' The client has been notified and can proceed with the viewing.'}
                         </p>
                       </div>
@@ -528,7 +702,7 @@ function LandlordBookings() {
         )}
       </div>
       
-      <style jsx>{`
+      <style jsx="true">{`
         @keyframes fadeInOut {
           0% { opacity: 0; transform: translateY(-10px); }
           10% { opacity: 1; transform: translateY(0); }
