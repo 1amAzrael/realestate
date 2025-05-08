@@ -1,11 +1,12 @@
-// UserBookings.jsx - Final Fixed Version
+// Updated UserBookings.jsx with Soft Delete Functionality
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
   FaHome, FaRegCalendarAlt, FaMapMarkerAlt, FaSearch,
   FaCheckCircle, FaTimesCircle, FaSpinner, FaFilter,
-  FaSortAmountDown, FaEye, FaArrowRight, FaInfoCircle
+  FaSortAmountDown, FaEye, FaArrowRight, FaInfoCircle,
+  FaTrash, FaUndo, FaExclamationTriangle
 } from 'react-icons/fa';
 
 function UserBookings() {
@@ -17,6 +18,11 @@ function UserBookings() {
   const [filter, setFilter] = useState('');
   const [filterError, setFilterError] = useState('');
   const [sortOrder, setSortOrder] = useState('newest');
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [bookingToDelete, setBookingToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  
   const navigate = useNavigate();
 
   // First, fetch bookings
@@ -223,6 +229,57 @@ function UserBookings() {
     return result;
   };
 
+  // Handle soft delete confirmation
+  const handleDeleteClick = (booking) => {
+    setBookingToDelete(booking);
+    setShowDeleteConfirmation(true);
+  };
+
+  // Cancel delete
+  const handleCancelDelete = () => {
+    setBookingToDelete(null);
+    setShowDeleteConfirmation(false);
+  };
+
+  // Confirm and process soft delete
+  const handleConfirmDelete = async () => {
+    if (!bookingToDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      const response = await fetch(`/api/booking/user/${bookingToDelete._id}/delete`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Remove the deleted booking from the list
+        setBookings(bookings.filter(booking => booking._id !== bookingToDelete._id));
+        setSuccessMessage('Booking deleted successfully');
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 3000);
+      } else {
+        setError(data.message || 'Failed to delete booking');
+      }
+    } catch (err) {
+      console.error('Error deleting booking:', err);
+      setError('An error occurred while deleting the booking');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirmation(false);
+      setBookingToDelete(null);
+    }
+  };
+
   const filteredBookings = getFilteredAndSortedBookings();
 
   // Group bookings by status
@@ -281,6 +338,60 @@ function UserBookings() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
+        {/* Success Message */}
+        {successMessage && (
+          <div className="fixed top-24 right-4 z-50 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow-lg flex items-center mb-4 animate-fade-in-out">
+            <FaCheckCircle className="text-green-500 mr-3" />
+            <p className="text-green-800">{successMessage}</p>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirmation && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
+              <div className="flex flex-col items-center text-center mb-4">
+                <div className="bg-red-100 p-3 rounded-full mb-4">
+                  <FaExclamationTriangle className="text-red-500 h-8 w-8" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Delete Booking</h3>
+                <p className="text-gray-600">
+                  Are you sure you want to delete your booking for "{getListingName(bookingToDelete)}"?
+                </p>
+                <p className="text-red-600 text-sm mt-2">
+                  This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex justify-center space-x-4 mt-6">
+                <button
+                  onClick={handleCancelDelete}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash className="mr-2" />
+                      Delete
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header Section */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -445,47 +556,75 @@ function UserBookings() {
                             <span className="ml-1 font-mono font-medium">{booking._id.substring(0, 8)}...</span>
                           </div>
 
-                          {booking.status === 'approved' && (
+                          <div className="flex gap-2">
+                            {booking.status === 'approved' && (
+                              <button
+                                onClick={() => handleViewListing(booking)}
+                                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors shadow-md"
+                              >
+                                <FaEye className="mr-2" />
+                                View Property
+                              </button>
+                            )}
+                            
                             <button
-                              onClick={() => handleViewListing(booking)}
-                              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-colors shadow-md"
+                              onClick={() => handleDeleteClick(booking)}
+                              className="flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-md"
                             >
-                              <FaEye className="mr-2" />
-                              View Property
+                              <FaTrash className="mr-2" />
+                              Delete
                             </button>
-                          )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Status timeline */}
-                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-                    <div className="flex items-center">
-                      <div className={`w-1/3 flex flex-col items-center ${booking.status === 'pending' || booking.status === 'approved' || booking.status === 'rejected' ? 'text-blue-600' : 'text-gray-400'}`}>
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-600 text-white">
-                          1
+                      {/* Status timeline */}
+                      {!booking.isDeleted && (
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                          <div className="flex items-center">
+                            <div className={`w-1/3 flex flex-col items-center ${booking.status === 'pending' || booking.status === 'approved' || booking.status === 'rejected' ? 'text-blue-600' : 'text-gray-400'}`}>
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-600 text-white">
+                                1
+                              </div>
+                              <span className="text-xs mt-1 font-medium">Booking Submitted</span>
+                            </div>
+                            <div className={`h-1 flex-grow ${booking.status === 'approved' || booking.status === 'rejected' ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+                            <div className={`w-1/3 flex flex-col items-center ${booking.status === 'approved' || booking.status === 'rejected' ? 'text-blue-600' : 'text-gray-400'}`}>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${booking.status === 'approved' || booking.status === 'rejected' ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
+                                2
+                              </div>
+                              <span className="text-xs mt-1 font-medium">User Review</span>
+                            </div>
+                            <div className={`h-1 flex-grow ${booking.status === 'approved' ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
+                            <div className={`w-1/3 flex flex-col items-center ${booking.status === 'approved' ? 'text-blue-600' : 'text-gray-400'}`}>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${booking.status === 'approved' ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
+                                3
+                              </div>
+                              <span className="text-xs mt-1 font-medium">Booking Confirmed</span>
+                            </div>
+                          </div>
                         </div>
-                        <span className="text-xs mt-1 font-medium">Booking Submitted</span>
-                      </div>
-                      <div className={`h-1 flex-grow ${booking.status === 'approved' || booking.status === 'rejected' ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
-                      <div className={`w-1/3 flex flex-col items-center ${booking.status === 'approved' || booking.status === 'rejected' ? 'text-blue-600' : 'text-gray-400'}`}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${booking.status === 'approved' || booking.status === 'rejected' ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
-                          2
+                      )}
+                      
+                      {/* Deleted info box */}
+                      {booking.isDeleted && (
+                        <div className="px-6 py-4 bg-red-50 border-t border-red-100">
+                          <div className="flex items-start">
+                            <FaExclamationTriangle className="text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+                            <div>
+                              <p className="text-red-800 font-medium">This booking has been deleted</p>
+                              <p className="text-red-600 text-sm mt-1">
+                                Contact the administrator if you wish to restore this booking.
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <span className="text-xs mt-1 font-medium">User Review</span>
-                      </div>
-                      <div className={`h-1 flex-grow ${booking.status === 'approved' ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
-                      <div className={`w-1/3 flex flex-col items-center ${booking.status === 'approved' ? 'text-blue-600' : 'text-gray-400'}`}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${booking.status === 'approved' ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'}`}>
-                          3
-                        </div>
-                        <span className="text-xs mt-1 font-medium">Booking Confirmed</span>
-                      </div>
+                      )}
                     </div>
-                  </div>
-                </div>
-              )})}
+                  );
+              })}
             </div>
           </div>
         )}

@@ -5,13 +5,13 @@ import {
   FaCalendarAlt, FaCheckCircle, FaTimesCircle, FaSpinner, 
   FaHome, FaUser, FaPhone, FaMapMarkerAlt, FaFilter,
   FaSortAmountDown, FaSearch, FaInfoCircle, FaEye, 
-  FaBell, FaExclamationTriangle, FaAngleDown
+  FaBell, FaExclamationTriangle, FaAngleDown, FaTrash
 } from 'react-icons/fa';
 
 function LandlordBookings() {
   const { currentUser } = useSelector((state) => state.user);
   const [bookings, setBookings] = useState([]);
-  const [properties, setProperties] = useState({}); // Map to store property details including images
+  const [properties, setProperties] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -20,6 +20,10 @@ function LandlordBookings() {
   const [processingBookingId, setProcessingBookingId] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  // Add state for delete confirmation
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [bookingToDelete, setBookingToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
 
   // Fetch bookings on initial load
@@ -144,6 +148,57 @@ function LandlordBookings() {
       setError(error.message);
       console.error("Error updating booking status:", error);
       setProcessingBookingId(null);
+    }
+  };
+
+  // Handle delete click - Open confirmation modal
+  const handleDeleteClick = (booking) => {
+    setBookingToDelete(booking);
+    setShowDeleteConfirmation(true);
+  };
+
+  // Cancel delete
+  const handleCancelDelete = () => {
+    setBookingToDelete(null);
+    setShowDeleteConfirmation(false);
+  };
+
+  // Confirm and process soft delete
+  const handleConfirmDelete = async () => {
+    if (!bookingToDelete) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      const response = await fetch(`/api/booking/landlord/${bookingToDelete._id}/delete`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Remove the deleted booking from the list
+        setBookings(bookings.filter(booking => booking._id !== bookingToDelete._id));
+        setSuccessMessage('Booking deleted successfully');
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 3000);
+      } else {
+        setError(data.message || 'Failed to delete booking');
+      }
+    } catch (err) {
+      console.error('Error deleting booking:', err);
+      setError('An error occurred while deleting the booking');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirmation(false);
+      setBookingToDelete(null);
     }
   };
 
@@ -343,6 +398,53 @@ function LandlordBookings() {
           <div className="fixed top-24 right-4 z-50 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow-lg animate-fade-in-out flex items-center">
             <FaCheckCircle className="text-green-500 mr-3 flex-shrink-0" />
             <p className="text-green-700">{successMessage}</p>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirmation && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
+              <div className="flex flex-col items-center text-center mb-4">
+                <div className="bg-red-100 p-3 rounded-full mb-4">
+                  <FaExclamationTriangle className="text-red-500 h-8 w-8" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Delete Booking Request</h3>
+                <p className="text-gray-600">
+                  Are you sure you want to delete this booking request from 
+                  {bookingToDelete ? ` ${bookingToDelete.name}` : ''}?
+                </p>
+                <p className="text-red-600 text-sm mt-2">
+                  This booking will be deleted and won't appear in your bookings list.
+                </p>
+              </div>
+              <div className="flex justify-center space-x-4 mt-6">
+                <button
+                  onClick={handleCancelDelete}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash className="mr-2" />
+                      Delete
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -694,6 +796,17 @@ function LandlordBookings() {
                         </p>
                       </div>
                     )}
+                    
+                    {/* Add delete button */}
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        onClick={() => handleDeleteClick(booking)}
+                        className="flex items-center px-3 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <FaTrash className="mr-2" />
+                        Delete Request
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

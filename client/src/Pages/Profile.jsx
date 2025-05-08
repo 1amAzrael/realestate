@@ -34,31 +34,11 @@ function Profile() {
   const [userListings, setUserListings] = useState([]);
   const [isLandlord, setIsLandlord] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
-  const [shiftingBookings, setShiftingBookings] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [formSuccess, setFormSuccess] = useState(false);
 
   const dispatch = useDispatch();
-
-  // Fetch shifting bookings
-  useEffect(() => {
-    const fetchShiftingBookings = async () => {
-      try {
-        const res = await fetch(`/api/shiftingRequest/user/${currentUser._id}`, {
-          headers: {
-            Authorization: `Bearer ${currentUser.access_token}`,
-          },
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Failed to fetch bookings");
-        setShiftingBookings(data.shiftingRequests || []);
-      } catch (error) {
-        console.error("Fetch Bookings Error:", error);
-      }
-    };
-    fetchShiftingBookings();
-  }, [currentUser._id, currentUser.access_token]);
 
   // Fetch Property Listing
   useEffect(() => {
@@ -312,13 +292,13 @@ function Profile() {
           )}
           
           {!isLandlord && (
-  <SidebarLink
-    icon={<FaCreditCard />}
-    label="Payment History"
-    isActive={activeSection === 'payment-history'}
-    onClick={() => setActiveSection('payment-history')}
-  />
-)}
+            <SidebarLink
+              icon={<FaCreditCard />}
+              label="Payment History"
+              isActive={activeSection === 'payment-history'}
+              onClick={() => setActiveSection('payment-history')}
+            />
+          )}
 
           <div className="mt-6 pt-6 border-t border-gray-100">
             <SidebarLink
@@ -618,85 +598,11 @@ function Profile() {
 
         {activeSection === 'shifting-bookings' && !currentUser.isAdmin && (
           <div>
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center mb-2">
-                <FaTruck className="mr-3 text-blue-600" />
-                My Shifting Bookings
-              </h2>
-              <p className="text-gray-600">Manage your property shifting services</p>
-            </div>
-
-            {shiftingBookings.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-md p-8 text-center">
-                <div className="mx-auto w-16 h-16 bg-blue-100 flex items-center justify-center rounded-full mb-4">
-                  <FaTruck className="h-8 w-8 text-blue-500" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">No shifting bookings found</h3>
-                <p className="text-gray-600 mb-6">You haven't made any shifting service bookings yet.</p>
-                <Link
-                  to="/hr"
-                  className="inline-block px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Book Shifting Service
-                </Link>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {shiftingBookings.map((booking) => (
-                  <div key={booking._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-100">
-                    <div className="p-6">
-                      <div className="flex justify-between">
-                        <h3 className="text-lg font-bold text-gray-800 mb-2">{booking.customerName}</h3>
-                        {getStatusBadge(booking.status)}
-                      </div>
-
-                      <div className="space-y-3 mt-4">
-                        <div className="flex items-start">
-                          <FaMapMarkerAlt className="text-blue-500 mt-1 mr-2 flex-shrink-0" />
-                          <p className="text-gray-700">{booking.shiftingAddress}</p>
-                        </div>
-
-                        <div className="flex items-center">
-                          <FaCalendarCheck className="text-blue-500 mr-2 flex-shrink-0" />
-                          <p className="text-gray-700">
-                            <span className="font-medium">Shifting Date: </span>
-                            {new Date(booking.shiftingDate).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center">
-                          <FaClock className="text-blue-500 mr-2 flex-shrink-0" />
-                          <p className="text-gray-700">
-                            <span className="font-medium">Booked on: </span>
-                            {new Date(booking.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                      </div>
-
-                      {booking.worker && (
-                        <div className="mt-4 pt-4 border-t border-gray-100">
-                          <h4 className="font-medium text-gray-800 mb-2">Worker Information:</h4>
-                          <p className="text-gray-700">{booking.worker.name}</p>
-                          <p className="text-gray-600 text-sm mt-1">Experience: {booking.worker.experience}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ShiftingBookings />
           </div>
         )}
         
-        {/* New Payment History Section */}
+        {/* Payment History Section */}
         {activeSection === 'payment-history' && (
           <div>
             <div className="bg-white rounded-xl shadow-md p-6 mb-6">

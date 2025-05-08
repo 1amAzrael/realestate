@@ -84,6 +84,128 @@ export const updateBookingStatus = async (req, res, next) => {
     next(errorHandler(500, "Internal server error"));
   }
 };
+
+// Soft Delete booking (for user)
+export const softDeleteBookingUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if the booking exists and belongs to the current user
+    const booking = await Booking.findById(id);
+    
+    if (!booking) {
+      return next(errorHandler(404, "Booking not found"));
+    }
+    
+    // Check if the user owns this booking
+    if (booking.userId.toString() !== req.user.id) {
+      return next(errorHandler(403, "You can only delete your own bookings"));
+    }
+    
+    // Soft delete the booking
+    await booking.softDelete("user");
+    
+    res.status(200).json({ 
+      success: true, 
+      message: "Booking deleted successfully" 
+    });
+  } catch (error) {
+    console.error("Error soft deleting booking:", error);
+    next(errorHandler(500, "Internal server error"));
+  }
+};
+
+// Soft Delete booking (for landlord)
+export const softDeleteBookingLandlord = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if the booking exists
+    const booking = await Booking.findById(id).populate("listingId");
+    
+    if (!booking) {
+      return next(errorHandler(404, "Booking not found"));
+    }
+    
+    // Check if the listing belongs to the landlord
+    if (booking.listingId.userRef.toString() !== req.user.id) {
+      return next(errorHandler(403, "You can only delete bookings for your own listings"));
+    }
+    
+    // Soft delete the booking
+    await booking.softDelete("landlord");
+    
+    res.status(200).json({ 
+      success: true, 
+      message: "Booking deleted successfully" 
+    });
+  } catch (error) {
+    console.error("Error soft deleting booking:", error);
+    next(errorHandler(500, "Internal server error"));
+  }
+};
+
+// Restore a soft-deleted booking
+export const restoreBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    // For this endpoint, we need to include deleted bookings in our search
+    const booking = await Booking.findOne({ _id: id, isDeleted: true });
+    
+    if (!booking) {
+      return next(errorHandler(404, "Deleted booking not found"));
+    }
+    
+    // Check permission: Only allow restore if current user is admin or the one who deleted it
+    if (!req.user.isAdmin) {
+      if (
+        (booking.deletedBy === "user" && booking.userId.toString() !== req.user.id) ||
+        (booking.deletedBy === "landlord" && 
+         booking.listingId.userRef && 
+         booking.listingId.userRef.toString() !== req.user.id)
+      ) {
+        return next(errorHandler(403, "You don't have permission to restore this booking"));
+      }
+    }
+    
+    // Restore the booking
+    await booking.restore();
+    
+    res.status(200).json({ 
+      success: true, 
+      message: "Booking restored successfully",
+      booking 
+    });
+  } catch (error) {
+    console.error("Error restoring booking:", error);
+    next(errorHandler(500, "Internal server error"));
+  }
+};
+
+// View soft-deleted bookings (Admin only)
+export const getDeletedBookings = async (req, res, next) => {
+  try {
+    // Check if user is admin
+    if (!req.user.isAdmin) {
+      return next(errorHandler(403, "Only admin can view deleted bookings"));
+    }
+    
+    // Find all soft-deleted bookings
+    const deletedBookings = await Booking.find({ isDeleted: true })
+      .populate("listingId", "name address")
+      .populate("userId", "username email");
+    
+    res.status(200).json({ 
+      success: true, 
+      deletedBookings 
+    });
+  } catch (error) {
+    console.error("Error fetching deleted bookings:", error);
+    next(errorHandler(500, "Internal server error"));
+  }
+};
+
 // Additional Admin-specific controller functions
 
 // Get all bookings (Admin only)
@@ -93,7 +215,15 @@ export const getAllBookings = async (req, res, next) => {
   }
 
   try {
-    const bookings = await Booking.find()
+    // For admins, we can provide an option to include deleted bookings
+    const includeDeleted = req.query.includeDeleted === 'true';
+    
+    let query = {};
+    if (!includeDeleted) {
+      query.isDeleted = { $ne: true };
+    }
+    
+    const bookings = await Booking.find(query)
       .sort({ createdAt: -1 })
       .populate("listingId", "name address type price discountPrice")
       .populate("userId", "username email");
@@ -140,7 +270,34 @@ export const updateBooking = async (req, res, next) => {
   }
 };
 
-// Delete booking (Admin only)
+// Soft Delete booking (Admin only)
+export const softDeleteBookingAdmin = async (req, res, next) => {
+  if (!req.user.isAdmin) {
+    return next(errorHandler(403, "You are not authorized to perform this action."));
+  }
+
+  try {
+    const { id } = req.params;
+    const booking = await Booking.findById(id);
+    
+    if (!booking) {
+      return next(errorHandler(404, "Booking not found"));
+    }
+    
+    // Soft delete the booking with admin as the deleter
+    await booking.softDelete("admin");
+    
+    res.status(200).json({ 
+      success: true, 
+      message: "Booking deleted successfully" 
+    });
+  } catch (error) {
+    console.error("Error soft deleting booking:", error);
+    next(errorHandler(500, "Internal server error"));
+  }
+};
+
+// Hard Delete booking (Admin only - Permanently removes the booking)
 export const deleteBooking = async (req, res, next) => {
   if (!req.user.isAdmin) {
     return next(errorHandler(403, "You are not authorized to perform this action."));
@@ -154,7 +311,10 @@ export const deleteBooking = async (req, res, next) => {
       return next(errorHandler(404, "Booking not found"));
     }
     
-    res.status(200).json({ success: true, message: "Booking deleted successfully" });
+    res.status(200).json({ 
+      success: true, 
+      message: "Booking permanently deleted" 
+    });
   } catch (error) {
     console.error("Error deleting booking:", error);
     next(errorHandler(500, "Internal server error"));
@@ -168,13 +328,37 @@ export const getBookingStats = async (req, res, next) => {
   }
 
   try {
+    // Include deleted bookings in statistics if requested
+    const includeDeleted = req.query.includeDeleted === 'true';
+    
+    let baseQuery = {};
+    if (!includeDeleted) {
+      baseQuery.isDeleted = { $ne: true };
+    }
+    
     // Get total count of bookings
-    const totalBookings = await Booking.countDocuments();
+    const totalBookings = await Booking.countDocuments(baseQuery);
     
     // Get count by status
-    const pendingBookings = await Booking.countDocuments({ status: "pending" });
-    const approvedBookings = await Booking.countDocuments({ status: "approved" });
-    const rejectedBookings = await Booking.countDocuments({ status: "rejected" });
+    const pendingBookings = await Booking.countDocuments({ 
+      ...baseQuery,
+      status: "pending" 
+    });
+    
+    const approvedBookings = await Booking.countDocuments({ 
+      ...baseQuery,
+      status: "approved" 
+    });
+    
+    const rejectedBookings = await Booking.countDocuments({ 
+      ...baseQuery,
+      status: "rejected" 
+    });
+    
+    // Get count of deleted bookings
+    const deletedBookings = await Booking.countDocuments({ 
+      isDeleted: true 
+    });
     
     // Get bookings by month (for the last 6 months)
     const sixMonthsAgo = new Date();
@@ -183,7 +367,8 @@ export const getBookingStats = async (req, res, next) => {
     const bookingsByMonth = await Booking.aggregate([
       {
         $match: {
-          createdAt: { $gte: sixMonthsAgo }
+          createdAt: { $gte: sixMonthsAgo },
+          ...(includeDeleted ? {} : { isDeleted: { $ne: true } })
         }
       },
       {
@@ -202,6 +387,9 @@ export const getBookingStats = async (req, res, next) => {
     
     // Get top properties with most bookings
     const topProperties = await Booking.aggregate([
+      {
+        $match: includeDeleted ? {} : { isDeleted: { $ne: true } }
+      },
       {
         $group: {
           _id: "$listingId",
@@ -237,6 +425,7 @@ export const getBookingStats = async (req, res, next) => {
         pendingBookings,
         approvedBookings,
         rejectedBookings,
+        deletedBookings,
         bookingsByMonth,
         topProperties
       }
