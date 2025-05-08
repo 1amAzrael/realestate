@@ -44,6 +44,10 @@ const listingSchema = new mongoose.Schema({
         type: Array,
         required: true,
     },
+    thumbnailIndex: {  // New field to track which image is the thumbnail
+        type: Number,
+        default: 0,    // Default to the first image
+    },
     offer: {
         type: Boolean,
         required: true,

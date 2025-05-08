@@ -9,6 +9,20 @@ export default function ListingItem({ listing }) {
   const isBooked = listing.availability && listing.availability.isBooked;
   const isUserBooking = listing.userBooking && listing.userBooking.hasBooked;
   
+  // Get thumbnail image URL
+  const getThumbnailUrl = () => {
+    if (!listing.imageURL || listing.imageURL.length === 0) {
+      return 'https://via.placeholder.com/600x400?text=No+Image';
+    }
+    
+    // Use the thumbnailIndex to get the correct image, default to the first one if not set
+    const index = listing.thumbnailIndex !== undefined && listing.thumbnailIndex < listing.imageURL.length
+      ? listing.thumbnailIndex 
+      : 0;
+      
+    return listing.imageURL[index];
+  };
+  
   // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -66,15 +80,16 @@ export default function ListingItem({ listing }) {
   };
   
   const bookingStatus = getBookingStatusDisplay();
+  const thumbnailUrl = getThumbnailUrl();
 
   return (
     <div className="group bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-full transform hover:-translate-y-1">
       <Link to={`/listing/${listing._id}`} className="block h-full">
-        {/* Image with gradient overlay */}
+        {/* Image with gradient overlay - Now using the thumbnail image */}
         <div className="relative overflow-hidden">
           <div className="h-64 overflow-hidden">
             <img
-              src={listing.imageURL[0] || 'https://via.placeholder.com/600x400?text=No+Image'}
+              src={thumbnailUrl}
               alt={listing.name}
               className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ${isBooked && !isUserBooking ? 'opacity-80' : ''}`}
             />

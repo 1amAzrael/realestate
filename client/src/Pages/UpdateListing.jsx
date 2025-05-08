@@ -6,7 +6,7 @@ import {
   FaHome, FaPencilAlt, FaMapMarkerAlt, FaTag, FaBed, 
   FaBath, FaParking, FaCouch, FaDollarSign, FaCheck,
   FaUpload, FaSpinner, FaTimes, FaArrowLeft, FaImages,
-  FaSave, FaExclamationTriangle
+  FaSave, FaExclamationTriangle, FaStar // Added for thumbnail
 } from 'react-icons/fa';
 
 function UpdateListing() {
@@ -25,6 +25,7 @@ function UpdateListing() {
     parking: false,
     furnished: false,
     imageURL: [],
+    thumbnailIndex: 0 // Default to first image
   });
   
   const [imageUrls, setImageUrls] = useState([]);
@@ -36,6 +37,8 @@ function UpdateListing() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [imageUploadError, setImageUploadError] = useState(null);
   const [originalData, setOriginalData] = useState(null);
+  // Add state for selected thumbnail 
+  const [selectedThumbnail, setSelectedThumbnail] = useState(0);
   
   const { currentUser } = useSelector((state) => state.user);
 
@@ -56,6 +59,10 @@ function UpdateListing() {
         
         setListingData(data);
         setImageUrls(data.imageURL || []);
+        
+        // Set the selected thumbnail based on the data
+        setSelectedThumbnail(data.thumbnailIndex !== undefined ? data.thumbnailIndex : 0);
+        
         setOriginalData(data);
         setFetchingListing(false);
       } catch (error) {
@@ -110,7 +117,22 @@ function UpdateListing() {
 
   // Handle image removal
   const handleRemoveImage = (index) => {
-    setImageUrls(imageUrls.filter((_, i) => i !== index));
+    const newImageUrls = imageUrls.filter((_, i) => i !== index);
+    setImageUrls(newImageUrls);
+    
+    // If we're removing the current thumbnail, reset to the first image
+    if (index === selectedThumbnail) {
+      setSelectedThumbnail(0);
+    } 
+    // If we're removing an image before the thumbnail, adjust the index
+    else if (index < selectedThumbnail) {
+      setSelectedThumbnail(selectedThumbnail - 1);
+    }
+  };
+  
+  // Handle thumbnail selection
+  const handleSelectThumbnail = (index) => {
+    setSelectedThumbnail(index);
   };
 
   // Check if form has been modified
@@ -130,6 +152,7 @@ function UpdateListing() {
       originalData.offer !== listingData.offer ||
       originalData.parking !== listingData.parking ||
       originalData.furnished !== listingData.furnished ||
+      originalData.thumbnailIndex !== selectedThumbnail || // Check if thumbnail changed
       JSON.stringify(originalData.imageURL) !== JSON.stringify(imageUrls)
     );
   };
@@ -161,6 +184,7 @@ function UpdateListing() {
         body: JSON.stringify({
           ...listingData,
           imageURL: imageUrls,
+          thumbnailIndex: selectedThumbnail, // Include the selected thumbnail index
           userRef: currentUser._id,
         }),
       });
@@ -176,7 +200,8 @@ function UpdateListing() {
       setSuccess("Listing updated successfully");
       setOriginalData({
         ...listingData,
-        imageURL: [...imageUrls]
+        imageURL: [...imageUrls],
+        thumbnailIndex: selectedThumbnail
       });
       
       // Navigate after 1.5 seconds
@@ -511,24 +536,60 @@ function UpdateListing() {
                   <p className="text-red-500 text-sm mt-2">{imageUploadError}</p>
                 )}
                 
+                {/* Thumbnail selection section */}
                 {imageUrls.length > 0 && (
-                  <div className="mt-4 grid grid-cols-3 gap-3">
-                    {imageUrls.map((url, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={url}
-                          alt={`Property ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg shadow-md"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  <div className="mt-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <FaStar className="mr-2 text-yellow-500" />
+                      Select Thumbnail Image:
+                    </h3>
+                    <div className="grid grid-cols-3 gap-3">
+                      {imageUrls.map((url, index) => (
+                        <div
+                          key={index}
+                          className={`relative group cursor-pointer transition-all duration-200 transform ${
+                            selectedThumbnail === index 
+                              ? 'ring-2 ring-yellow-500 scale-105 shadow-lg' 
+                              : 'hover:ring-2 hover:ring-blue-300 hover:scale-105'
+                          } rounded-lg overflow-hidden`}
+                          onClick={() => handleSelectThumbnail(index)}
                         >
-                          <FaTimes />
-                        </button>
-                      </div>
-                    ))}
+                          <img
+                            src={url}
+                            alt={`Property ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          
+                          {/* Thumbnail indicator */}
+                          {selectedThumbnail === index && (
+                            <div className="absolute top-0 left-0 w-full h-full bg-yellow-500/20 flex items-center justify-center">
+                              <div className="bg-yellow-500 text-white p-1 rounded-full">
+                                <FaStar className="h-4 w-4" />
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Remove button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveImage(index);
+                            }}
+                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                          >
+                            <FaTimes className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Thumbnail selection helper text */}
+                    <p className="text-sm text-gray-500 mt-2">
+                      {selectedThumbnail !== null 
+                        ? `Image #${selectedThumbnail + 1} selected as thumbnail` 
+                        : 'Click on an image to select it as the thumbnail'}
+                    </p>
                   </div>
                 )}
               </div>

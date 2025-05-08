@@ -8,8 +8,6 @@ import { FaHome, FaSearch, FaShieldAlt, FaHeadset, FaLock, FaArrowRight, FaBuild
 import ListingItem from '../Component/ListingItem';
 import TawkChat from '../Component/Twakchat';
 
-
-
 export default function Home() {
   const [listings, setListings] = useState({
     offer: [],
@@ -59,60 +57,70 @@ export default function Home() {
           className="h-full w-full"
         >
           {listings.offer.length > 0 ? (
-            listings.offer.map((listing) => (
-              <SwiperSlide key={listing._id}>
-                <div
-                  className="h-full w-full bg-cover bg-center"
-                  style={{ backgroundImage: `url(${listing.imageURL[0]})` }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent"></div>
-                  <div className="flex h-full items-center relative z-10 px-4 lg:px-20">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.8 }}
-                      className="max-w-2xl space-y-6"
-                    >
-                      <span className="inline-block bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium">
-                        {listing.type === 'rent' ? 'For Rent' : 'For Sale'}
-                      </span>
-                      <h1 className="text-5xl font-bold leading-tight lg:text-6xl">
-                        {listing.name}
-                      </h1>
-                      <p className="text-xl lg:text-2xl text-gray-100">
-                        <FaMapMarkerAlt className="inline mr-2" />
-                        {listing.address}
-                      </p>
-                      <div className="flex flex-wrap gap-4 text-lg">
-                        <span className="flex items-center bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
-                          <FaBed className="mr-2" /> {listing.bedrooms} Bedrooms
+            listings.offer.map((listing) => {
+              // Get the thumbnail image URL
+              const thumbnailUrl = listing.imageURL[
+                listing.thumbnailIndex !== undefined && 
+                listing.thumbnailIndex < listing.imageURL.length 
+                  ? listing.thumbnailIndex 
+                  : 0
+              ];
+              
+              return (
+                <SwiperSlide key={listing._id}>
+                  <div
+                    className="h-full w-full bg-cover bg-center"
+                    style={{ backgroundImage: `url(${thumbnailUrl})` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent"></div>
+                    <div className="flex h-full items-center relative z-10 px-4 lg:px-20">
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                        className="max-w-2xl space-y-6"
+                      >
+                        <span className="inline-block bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium">
+                          {listing.type === 'rent' ? 'For Rent' : 'For Sale'}
                         </span>
-                        <span className="flex items-center bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
-                          <FaBath className="mr-2" /> {listing.bathrooms} Bathrooms
-                        </span>
-                        <span className="flex items-center bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
-                          <FaHome className="mr-2" /> {listing.furnished ? 'Furnished' : 'Unfurnished'}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-4 pt-2">
-                        <Link
-                          to={`/listing/${listing._id}`}
-                          className="inline-block rounded-lg bg-blue-600 px-8 py-3 font-medium text-white transition hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-transform duration-200"
-                        >
-                          View Property
-                        </Link>
-                        <Link
-                          to="/search"
-                          className="inline-block rounded-lg bg-white px-8 py-3 font-medium text-blue-800 transition hover:bg-gray-100 shadow-lg"
-                        >
-                          <FaSearch className="inline mr-2" /> Explore More
-                        </Link>
-                      </div>
-                    </motion.div>
+                        <h1 className="text-5xl font-bold leading-tight lg:text-6xl">
+                          {listing.name}
+                        </h1>
+                        <p className="text-xl lg:text-2xl text-gray-100">
+                          <FaMapMarkerAlt className="inline mr-2" />
+                          {listing.address}
+                        </p>
+                        <div className="flex flex-wrap gap-4 text-lg">
+                          <span className="flex items-center bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
+                            <FaBed className="mr-2" /> {listing.bedrooms} Bedrooms
+                          </span>
+                          <span className="flex items-center bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
+                            <FaBath className="mr-2" /> {listing.bathrooms} Bathrooms
+                          </span>
+                          <span className="flex items-center bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full">
+                            <FaHome className="mr-2" /> {listing.furnished ? 'Furnished' : 'Unfurnished'}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-4 pt-2">
+                          <Link
+                            to={`/listing/${listing._id}`}
+                            className="inline-block rounded-lg bg-blue-600 px-8 py-3 font-medium text-white transition hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-transform duration-200"
+                          >
+                            View Property
+                          </Link>
+                          <Link
+                            to="/search"
+                            className="inline-block rounded-lg bg-white px-8 py-3 font-medium text-blue-800 transition hover:bg-gray-100 shadow-lg"
+                          >
+                            <FaSearch className="inline mr-2" /> Explore More
+                          </Link>
+                        </div>
+                      </motion.div>
+                    </div>
                   </div>
-                </div>
-              </SwiperSlide>
-            ))
+                </SwiperSlide>
+              );
+            })
           ) : (
             <SwiperSlide>
               <div className="h-full w-full bg-gradient-to-r from-blue-700 to-indigo-800">

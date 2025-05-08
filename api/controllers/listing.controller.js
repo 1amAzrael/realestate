@@ -5,6 +5,18 @@ import { errorHandler } from "../utils/error.js";
 
 export const createListing = async (req, res, next) => {
     try {
+        // Make sure thumbnailIndex is a number and within the valid range
+        if (req.body.thumbnailIndex !== undefined) {
+            const thumbnailIndex = parseInt(req.body.thumbnailIndex);
+            if (isNaN(thumbnailIndex) || thumbnailIndex < 0 || thumbnailIndex >= req.body.imageURL.length) {
+                req.body.thumbnailIndex = 0; // Default to first image if invalid
+            } else {
+                req.body.thumbnailIndex = thumbnailIndex;
+            }
+        } else {
+            req.body.thumbnailIndex = 0; // Default to first image if not provided
+        }
+        
         const listing = await Listing.create(req.body);
         return res.status(201).json(listing);
     } catch (error) {
@@ -37,7 +49,17 @@ export const updateListing = async (req, res, next) => {
     if(req.user.id !== listing.userRef) return next(errorHandler(403,"You can only update your listing!"));
 
     try{
-        const updatedListing = await Listing.findByIdAndUpdate(req.params.id,  req.body, { new: true });
+        // Make sure thumbnailIndex is a number and within the valid range
+        if (req.body.thumbnailIndex !== undefined) {
+            const thumbnailIndex = parseInt(req.body.thumbnailIndex);
+            if (isNaN(thumbnailIndex) || thumbnailIndex < 0 || thumbnailIndex >= req.body.imageURL.length) {
+                req.body.thumbnailIndex = 0; // Default to first image if invalid
+            } else {
+                req.body.thumbnailIndex = thumbnailIndex;
+            }
+        }
+        
+        const updatedListing = await Listing.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.status(200).json(updatedListing);
     }
     catch(error){
