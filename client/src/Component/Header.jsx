@@ -196,7 +196,7 @@ function Header() {
                     {/* Conditional Rendering for My Bookings */}
                     {!(currentUser.isAdmin || currentUser.isLandlord) && (
                       <Link
-                        to="/my-bookings"
+                        to="/profile"
                         className="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50 transition-colors"
                         onClick={() => setIsProfileOpen(false)}
                       >
