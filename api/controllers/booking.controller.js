@@ -1,6 +1,7 @@
 // controllers/booking.controller.js
 import Listing from "../models/listing.model.js";
 import Booking from "../models/booking.model.js";
+import { updateAvailabilityFromBooking } from "./availability.controller.js";
 import { errorHandler } from "../utils/error.js";
 import mongoose from "mongoose";
 
@@ -67,23 +68,39 @@ export const getLandlordBookings = async (req, res, next) => {
 };
 
 // Update booking status
+// Update booking status
 export const updateBookingStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+
     if (!["pending", "approved", "rejected"].includes(status)) {
       return next(errorHandler(400, "Invalid status"));
     }
+
     const booking = await Booking.findByIdAndUpdate(id, { status }, { new: true });
+
     if (!booking) {
       return next(errorHandler(404, "Booking not found"));
     }
+
+    // ✅ Call availability update if approved
+    if (status === "approved") {
+      try {
+        await updateAvailabilityFromBooking(booking);
+        console.log("Availability updated successfully for booking:", booking._id);
+      } catch (error) {
+        console.error("Failed to update availability from booking:", error);
+      }
+    }
+
     res.status(200).json({ success: true, booking });
   } catch (error) {
     console.error("Error updating booking status:", error);
     next(errorHandler(500, "Internal server error"));
   }
 };
+
 
 // Soft Delete booking (for user)
 export const softDeleteBookingUser = async (req, res, next) => {

@@ -43,9 +43,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
-      {/* Include the Tawk Chat component */}
       <TawkChat />
-      
+
       {/* Hero Section */}
       <section className="relative h-[80vh] text-white">
         <Swiper
@@ -56,16 +55,21 @@ export default function Home() {
           effect="fade"
           className="h-full w-full"
         >
-          {listings.offer.length > 0 ? (
+          {loading ? (
+            <SwiperSlide>
+              <div className="flex justify-center items-center h-full bg-white">
+                <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500"></div>
+              </div>
+            </SwiperSlide>
+          ) : listings.offer.length > 0 ? (
             listings.offer.map((listing) => {
-              // Get the thumbnail image URL
               const thumbnailUrl = listing.imageURL[
-                listing.thumbnailIndex !== undefined && 
-                listing.thumbnailIndex < listing.imageURL.length 
-                  ? listing.thumbnailIndex 
+                listing.thumbnailIndex !== undefined &&
+                listing.thumbnailIndex < listing.imageURL.length
+                  ? listing.thumbnailIndex
                   : 0
               ];
-              
+
               return (
                 <SwiperSlide key={listing._id}>
                   <div
