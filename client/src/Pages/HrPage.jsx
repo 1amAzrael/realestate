@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { FaUser, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaArrowLeft, 
+import { 
+  FaUser, FaPhone, FaMapMarkerAlt, FaCalendarAlt, FaArrowLeft, 
   FaCheckCircle, FaStar, FaBriefcase, FaTools, FaClock, FaDollarSign, 
-  FaSortAmountDown, FaExclamationTriangle, FaSpinner } from "react-icons/fa";
+  FaSortAmountDown, FaExclamationTriangle, FaSpinner
+} from "react-icons/fa";
 
 const HrPage = () => {
   const [workers, setWorkers] = useState([]);
@@ -113,18 +115,17 @@ const HrPage = () => {
 
       const data = await res.json();
       console.log("Shifting request created:", data);
-      setBookingStep(2);
+      
+      // Navigate to the status page with the request ID
+      navigate(`/hr-status/${data.shiftingRequest._id}`, {
+        state: {
+          worker: selectedWorker,
+          bookingData: bookingData
+        }
+      });
     } catch (error) {
       console.error("Error submitting shifting request:", error);
       setError(error.message || "Failed to submit request. Please try again.");
-      
-      // For development purposes, allow skipping to the next step
-      // In production, you should remove this
-      if (process.env.NODE_ENV === 'development') {
-        if (confirm("Error occurred. For development: Continue to payment screen anyway?")) {
-          setBookingStep(2);
-        }
-      }
     } finally {
       setIsSubmitting(false);
     }
@@ -134,21 +135,6 @@ const HrPage = () => {
     setBookingData({ ...bookingData, [e.target.name]: e.target.value });
     // Clear error when user starts typing
     if (error) setError(null);
-  };
-
-  const handleConfirmShifting = () => {
-    // Ensure rate is a number before navigation
-    const processedWorker = {
-      ...selectedWorker,
-      rate: parseFloat(selectedWorker.rate) || 0
-    };
-    
-    navigate("/payment", { 
-      state: { 
-        worker: processedWorker, 
-        bookingData 
-      } 
-    });
   };
 
   const handleBackToWorkers = () => {
@@ -470,70 +456,6 @@ const HrPage = () => {
                 </button>
               </div>
             </form>
-          </div>
-        )}
-
-        {/* Step 2: Confirmation */}
-        {bookingStep === 2 && selectedWorker && (
-          <div className="bg-white rounded-xl shadow-lg p-8 text-center max-w-2xl mx-auto border border-gray-200">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <FaCheckCircle className="text-green-600 w-10 h-10" />
-            </div>
-            <h2 className="text-3xl font-bold mb-4 text-gray-800">Booking Confirmed</h2>
-            <p className="mb-2 text-lg text-gray-600">Your booking with {selectedWorker.name} has been confirmed.</p>
-            
-            
-            <div className="bg-gray-50 rounded-lg p-6 mb-8 text-left">
-              <h3 className="text-xl font-medium text-gray-800 mb-4">Booking Details</h3>
-              <div className="space-y-3">
-                <div className="flex items-start">
-                  <FaUser className="mt-1 mr-3 text-blue-500" />
-                  <div>
-                    <p className="text-sm text-gray-500">Worker</p>
-                    <p className="font-medium">{selectedWorker.name}</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <FaCalendarAlt className="mt-1 mr-3 text-blue-500" />
-                  <div>
-                    <p className="text-sm text-gray-500">Date</p>
-                    <p className="font-medium">{new Date(bookingData.shiftingDate).toLocaleDateString('en-US', {
-                      year: 'numeric', month: 'long', day: 'numeric'
-                    })}</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <FaMapMarkerAlt className="mt-1 mr-3 text-blue-500" />
-                  <div>
-                    <p className="text-sm text-gray-500">Address</p>
-                    <p className="font-medium">{bookingData.shiftingAddress}</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <FaDollarSign className="mt-1 mr-3 text-blue-500" />
-                  <div>
-                    <p className="text-sm text-gray-500">Amount</p>
-                    <p className="font-medium">{formatRate(selectedWorker.rate)}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <p className="mb-6 text-lg font-medium">Would you like to process payment now?</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={handleConfirmShifting}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-md font-medium"
-              >
-                Proceed to Payment
-              </button>
-              <button
-                onClick={() => navigate("/profile")}
-                className="bg-gray-200 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-300 transition-all duration-300"
-              >
-                View My Bookings
-              </button>
-            </div>
           </div>
         )}
       </main>

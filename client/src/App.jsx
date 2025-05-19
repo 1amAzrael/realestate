@@ -21,9 +21,9 @@ import ContactLandlord from './Pages/ContactLandlord';
 import BookingForm from './Component/BookingForm';
 import PaymentVerify from './Pages/PaymentVerify.jsx';
 import PaymentSuccess from './Pages/PaymentSuccess.jsx';
+import ShiftingStatusPage from './Pages/ShiftingStatusPage';
 import MapPage from './Pages/MapPage';
 import Contact from './Pages/Contact';
-// Removed OrderForm import since you don't have this component
 
 // Wrapper component to conditionally render Header and Footer
 const Layout = ({ children }) => {
@@ -51,8 +51,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Wrap all routes with the Layout component */}
-
+        {/* Public routes */}
         <Route
           path="/"
           element={
@@ -70,6 +69,7 @@ function App() {
             </Layout>
           }
         />
+
         <Route
           path="/signup"
           element={
@@ -78,65 +78,7 @@ function App() {
             </Layout>
           }
         />
-        <Route element={<PrivateRoute />}>
-          <Route
-            path="/profile"
-            element={
-              <Layout>
-                <Profile />
-              </Layout>
-            }
-          />
-          <Route
-            path="/create-listing"
-            element={
-              <Layout>
-                <CreateListing />
-              </Layout>
-            }
-          />
-          <Route
-            path="/update-listing/:listingId"
-            element={
-              <Layout>
-                <UpdateListing />
-              </Layout>
-            }
-          />
-          <Route
-            path="/mybookings"
-            element={
-              <Layout>
-                <UserBookings />
-              </Layout>
-            }
-          />
-          <Route
-            path="/booking-requests"
-            element={
-              <Layout>
-                <LandlordBookings />
-              </Layout>
-            }
-          />
-          {/* Add both general payment and specific booking payment routes */}
-          <Route
-            path="/payment"
-            element={
-              <Layout>
-                <PaymentPage />
-              </Layout>
-            }
-          />
-          <Route
-            path="/payment/:bookingId"
-            element={
-              <Layout>
-                <PaymentPage />
-              </Layout>
-            }
-          />
-        </Route>
+
         <Route
           path="/about"
           element={
@@ -145,6 +87,7 @@ function App() {
             </Layout>
           }
         />
+
         <Route
           path="/contact"
           element={
@@ -153,6 +96,7 @@ function App() {
             </Layout>
           }
         />
+
         <Route
           path="/listing/:listingId"
           element={
@@ -161,6 +105,7 @@ function App() {
             </Layout>
           }
         />
+
         <Route
           path="/search"
           element={
@@ -169,6 +114,7 @@ function App() {
             </Layout>
           }
         />
+
         <Route
           path="/hr"
           element={
@@ -177,14 +123,7 @@ function App() {
             </Layout>
           }
         />
-        <Route
-          path="/book/:listingId"
-          element={
-            <Layout>
-              <BookingForm />
-            </Layout>
-          }
-        />
+
         <Route
           path="/map"
           element={
@@ -194,16 +133,105 @@ function App() {
           }
         />
 
-        <Route
-          path="/contact-landlord/:listingId"
-          element={
-            <Layout>
-              <ContactLandlord />
-            </Layout>
-          }
-        />
+        {/* Protected routes */}
+        <Route element={<PrivateRoute />}>
+          <Route
+            path="/profile"
+            element={
+              <Layout>
+                <Profile />
+              </Layout>
+            }
+          />
 
-        {/* Payment verification routes - wrapped in Layout but without header/footer */}
+          <Route
+            path="/create-listing"
+            element={
+              <Layout>
+                <CreateListing />
+              </Layout>
+            }
+          />
+
+          <Route
+            path="/update-listing/:listingId"
+            element={
+              <Layout>
+                <UpdateListing />
+              </Layout>
+            }
+          />
+
+          <Route
+            path="/mybookings"
+            element={
+              <Layout>
+                <UserBookings />
+              </Layout>
+            }
+          />
+
+          <Route
+            path="/booking-requests"
+            element={
+              <Layout>
+                <LandlordBookings />
+              </Layout>
+            }
+          />
+
+          <Route
+            path="/book/:listingId"
+            element={
+              <Layout>
+                <BookingForm />
+              </Layout>
+            }
+          />
+
+          <Route
+            path="/contact-landlord/:listingId"
+            element={
+              <Layout>
+                <ContactLandlord />
+              </Layout>
+            }
+          />
+
+          {/* Payment routes - both general and specific booking payment */}
+          <Route
+            path="/payment"
+            element={
+              <Layout>
+                <PaymentPage />
+              </Layout>
+            }
+          />
+
+          <Route
+            path="/payment/:bookingId"
+            element={
+              <Layout>
+                <PaymentPage />
+              </Layout>
+            }
+          />
+
+          {/* HR Status page - requires authentication */}
+          <Route
+            path="/hr-status/:requestId"
+            element={
+              <Layout>
+                <ShiftingStatusPage />
+              </Layout>
+            }
+          />
+
+          {/* Admin Dashboard - now protected route */}
+          <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
+        </Route>
+
+        {/* Payment verification routes - no header/footer */}
         <Route
           path="/payment/verify"
           element={
@@ -212,6 +240,7 @@ function App() {
             </Layout>
           }
         />
+
         <Route
           path="/payment/success"
           element={
@@ -220,13 +249,6 @@ function App() {
             </Layout>
           }
         />
-
-        {/* Admin Dashboard (no Header/Footer) */}
-        <Route path="/admin-dashboard" element={<AdminDashboard />}>
-          {/* Removed OrderForm references since you don't have this component */}
-          {/* You can replace with a default admin dashboard view */}
-          <Route path="" element={<div>Admin Dashboard Home</div>} />
-        </Route>
       </Routes>
     </BrowserRouter>
   );

@@ -46,7 +46,26 @@ export const createShiftingRequest = async (req, res, next) => {
   }
 };
 
-// Get all shifting requests for admin
+// Get shifting request status by ID (for users to check approval status)
+export const getShiftingRequestStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const shiftingRequest = await ShiftingRequest.findById(id, 'status');
+    
+    if (!shiftingRequest) {
+      return next(errorHandler(404, "Shifting request not found"));
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      status: shiftingRequest.status 
+    });
+  } catch (error) {
+    next(errorHandler(500, "Failed to fetch shifting request status"));
+  }
+};
+
+// Get all shifting requests for admin (sorted by newest first)
 export const getShiftingRequests = async (req, res, next) => {
   try {
     // For admins, we can provide an option to include deleted requests
@@ -58,6 +77,7 @@ export const getShiftingRequests = async (req, res, next) => {
     }
     
     const shiftingRequests = await ShiftingRequest.find(query)
+      .sort({ createdAt: -1 }) // ✅ Sort by newest first
       .populate("userId", "username email") // Populate with select fields
       .populate("workerId", "name experience rate"); // Populate with select fields
     

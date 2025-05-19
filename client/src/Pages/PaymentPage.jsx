@@ -26,7 +26,29 @@ const PaymentPage = () => {
 
         // Check if we have data from the HR page
         if (hrData && hrData.worker) {
-          // Create a booking object from HR data
+          // ✅ First verify the approval status if we have a shifting request ID
+          if (hrData.shiftingRequestId) {
+            try {
+              const statusRes = await axios.get(`/api/shiftingRequest/status/${hrData.shiftingRequestId}`, {
+                headers: {
+                  Authorization: `Bearer ${currentUser.access_token}`,
+                },
+              });
+              
+              if (statusRes.data.status !== 'approved') {
+                setError('This request has not been approved yet. Please wait for admin approval.');
+                setLoading(false);
+                return;
+              }
+            } catch (statusError) {
+              console.error('Error checking approval status:', statusError);
+              setError('Unable to verify request status. Please try again.');
+              setLoading(false);
+              return;
+            }
+          }
+          
+          // Create a booking object from HR data (only if approved)
           setBooking({
             _id: 'hr-' + Date.now(), // Generate temporary ID
             totalAmount: parseFloat(hrData.worker.rate) || 500, // Use worker rate or default
@@ -40,7 +62,8 @@ const PaymentPage = () => {
             customerPhone: hrData.bookingData?.customerPhone || '',
             shiftingAddress: hrData.bookingData?.shiftingAddress || '',
             workerId: hrData.worker._id,
-            worker: hrData.worker
+            worker: hrData.worker,
+            shiftingRequestId: hrData.shiftingRequestId
           });
           setLoading(false);
         }
@@ -93,7 +116,8 @@ const PaymentPage = () => {
             workerId: booking.workerId,
             shiftingDate: booking.checkIn,
             shiftingAddress: booking.shiftingAddress,
-            userId: currentUser._id
+            userId: currentUser._id,
+            shiftingRequestId: booking.shiftingRequestId // Include the original request ID
           }
         };
       } else {
@@ -111,7 +135,11 @@ const PaymentPage = () => {
         };
       }
 
-      const response = await axios.post(endpoint, payloadData);
+      const response = await axios.post(endpoint, payloadData, {
+        headers: {
+          Authorization: `Bearer ${currentUser.access_token}`,
+        },
+      });
 
       if (response.data && response.data.data.payment_url) {
         // Redirect to Khalti payment page
@@ -150,12 +178,20 @@ const PaymentPage = () => {
           <div className="text-red-500 text-5xl mb-4">✗</div>
           <h2 className="text-2xl font-bold mb-4 text-gray-800">Error</h2>
           <p className="text-gray-600 mb-6">{error || "No booking information available"}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Return to Home
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => navigate('/hr')}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Back to HR Services
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Return to Home
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -5,6 +5,7 @@ import {
   getShiftingRequests,
   updateShiftingRequestStatus,
   getUserShiftingRequests,
+  getShiftingRequestStatus,
   softDeleteShiftingRequestUser,
   softDeleteShiftingRequestWorker,
   softDeleteShiftingRequestAdmin,
@@ -20,6 +21,9 @@ router.post('/create', verifyToken, createShiftingRequest);
 
 // Get all shifting requests (admin only)
 router.get('/all', verifyToken, getShiftingRequests);
+
+// Get shifting request status by ID (for status checking)
+router.get('/status/:id', verifyToken, getShiftingRequestStatus);
 
 // Update shifting request status
 router.put('/update/:id', verifyToken, updateShiftingRequestStatus);

@@ -556,9 +556,9 @@ export default function AdminDashboard() {
       >
         <div className="p-4 flex items-center justify-between border-b border-indigo-700/50">
           {sidebarOpen && (
-            <h1 className="text-xl font-bold flex items-center">
+            <h1 className="text-lg font-bold flex items-center ">
               <span className="bg-white text-indigo-800 p-1 rounded mr-2 text-xs">RP</span>
-              Admin Portal
+              Admin Dashboard
             </h1>
           )}
           <button
@@ -597,7 +597,7 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        <div className="absolute bottom-0 w-full p-4 border-t border-indigo-700/50">
+        <div className="absolute bottom-0 w-full p-4  border-indigo-700/50">
           <div className={`flex items-center ${!sidebarOpen && "justify-center"}`}>
             <div className="bg-white text-indigo-800 rounded-full w-10 h-10 flex items-center justify-center mr-3 font-bold shadow-md">
               {currentUser?.username?.charAt(0).toUpperCase() || "A"}
@@ -624,63 +624,7 @@ export default function AdminDashboard() {
             </h1>
 
             <div className="flex items-center space-x-4">
-              <div className="relative">
-                <button 
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors relative"
-                >
-                  <FaBell />
-                  <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    {pendingRequests}
-                  </span>
-                </button>
-                
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl z-30 border border-gray-200 overflow-hidden animate-fadeIn">
-                    <div className="p-3 border-b border-gray-200 bg-gray-50 flex justify-between">
-                      <h3 className="font-medium">Notifications</h3>
-                      <span className="text-xs bg-indigo-100 text-indigo-800 px-2 rounded-full flex items-center">
-                        {pendingRequests} new
-                      </span>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {pendingRequests > 0 ? (
-                        shiftingRequests
-                          .filter(req => req.status === 'pending')
-                          .map(req => (
-                            <div key={req._id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
-                              <p className="font-medium text-sm">{req.customerName}</p>
-                              <p className="text-xs text-gray-500 mt-1">New shifting request</p>
-                              <div className="flex justify-between items-center mt-2">
-                                <span className="text-xs text-gray-400">
-                                  {new Date(req.createdAt).toLocaleDateString()}
-                                </span>
-                                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                                  Pending
-                                </span>
-                              </div>
-                            </div>
-                          ))
-                      ) : (
-                        <div className="p-4 text-center text-gray-500 text-sm">
-                          No new notifications
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-2 bg-gray-50 border-t border-gray-200 text-center">
-                      <button 
-                        onClick={() => {
-                          setActiveTab("shifting-requests");
-                          setShowNotifications(false);
-                        }}
-                        className="text-sm text-indigo-600 hover:text-indigo-800"
-                      >
-                        View all requests
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              
 
               <button
                 onClick={() => navigate("/")}
