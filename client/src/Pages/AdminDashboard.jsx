@@ -289,64 +289,104 @@ export default function AdminDashboard() {
   };
 
   const handleAddWorker = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch("/api/worker/add", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${currentUser?.access_token}`,
-        },
-        body: JSON.stringify(workerData),
-      });
-      if (!res.ok) {
-        throw new Error("Failed to add worker");
-      }
-      const data = await res.json();
-      setWorkers((prevWorkers) => [...prevWorkers, data.worker]);
-      setIsAddWorkerModalOpen(false);
-      setWorkerData({
-        name: "",
-        experience: "",
-        rate: "",
-        specialties: "",
-        availability: "",
-        rating: 0,
-      });
-      showSuccess("Worker added successfully");
-    } catch (error) {
-      setError(error.message);
-      console.error(error);
-    }
-  };
+  e.preventDefault();
+  try {
+    // Convert specialties string to array
+    const specialtiesArray = workerData.specialties
+      .split(',')
+      .map(specialty => specialty.trim())
+      .filter(specialty => specialty.length > 0);
 
+    // Clean the rate field to extract numeric value
+    const cleanRate = workerData.rate.replace(/[$\/hr]/g, '');
+
+    const workerPayload = {
+      ...workerData,
+      specialties: specialtiesArray,
+      rate: cleanRate, // Send just the numeric value
+      rating: parseInt(workerData.rating) // Ensure rating is an integer
+    };
+
+    const res = await fetch("/api/worker/add", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${currentUser?.access_token}`,
+      },
+      body: JSON.stringify(workerPayload),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || "Failed to add worker");
+    }
+
+    const data = await res.json();
+    setWorkers((prevWorkers) => [...prevWorkers, data.worker]);
+    setIsAddWorkerModalOpen(false);
+    setWorkerData({
+      name: "",
+      experience: "",
+      rate: "",
+      specialties: "",
+      availability: "",
+      rating: 0,
+    });
+    showSuccess("Worker added successfully");
+  } catch (error) {
+    setError(error.message);
+    console.error(error);
+  }
+};
   const handleEditWorker = async (workerId, updatedData) => {
-    try {
-      const res = await fetch(`/api/worker/update/${workerId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${currentUser?.access_token}`,
-        },
-        body: JSON.stringify(updatedData),
-      });
-      if (!res.ok) {
-        throw new Error("Failed to update worker");
-      }
-      const data = await res.json();
-      setWorkers((prevWorkers) =>
-        prevWorkers.map((worker) =>
-          worker._id === workerId ? data.worker : worker
-        )
-      );
-      setIsEditWorkerModalOpen(false);
-      showSuccess("Worker updated successfully");
-    } catch (error) {
-      setError(error.message);
-      console.error(error);
+  try {
+    // Convert specialties string to array if it's a string
+    let processedData = { ...updatedData };
+    
+    if (typeof updatedData.specialties === 'string') {
+      processedData.specialties = updatedData.specialties
+        .split(',')
+        .map(specialty => specialty.trim())
+        .filter(specialty => specialty.length > 0);
     }
-  };
 
+    // Clean the rate field to extract numeric value if it contains formatting
+    if (typeof updatedData.rate === 'string' && updatedData.rate.includes('$')) {
+      processedData.rate = updatedData.rate.replace(/[$\/hr]/g, '');
+    }
+
+    // Ensure rating is an integer
+    if (updatedData.rating !== undefined) {
+      processedData.rating = parseInt(updatedData.rating);
+    }
+
+    const res = await fetch(`/api/worker/update/${workerId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${currentUser?.access_token}`,
+      },
+      body: JSON.stringify(processedData),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || "Failed to update worker");
+    }
+
+    const data = await res.json();
+    setWorkers((prevWorkers) =>
+      prevWorkers.map((worker) =>
+        worker._id === workerId ? data.worker : worker
+      )
+    );
+    setIsEditWorkerModalOpen(false);
+    showSuccess("Worker updated successfully");
+  } catch (error) {
+    setError(error.message);
+    console.error(error);
+  }
+};
   const handleDeleteWorker = async (workerId) => {
     if (!confirm("Are you sure you want to delete this worker?")) {
       return;
