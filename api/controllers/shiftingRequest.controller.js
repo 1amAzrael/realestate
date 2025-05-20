@@ -65,6 +65,53 @@ export const getShiftingRequestStatus = async (req, res, next) => {
   }
 };
 
+// Get a single shifting request by ID (NEW)
+export const getShiftingRequest = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const shiftingRequest = await ShiftingRequest.findById(id)
+      .populate("workerId", "name experience rate");
+    
+    if (!shiftingRequest) {
+      return next(errorHandler(404, "Shifting request not found"));
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      shiftingRequest 
+    });
+  } catch (error) {
+    console.error("Error fetching shifting request:", error);
+    next(errorHandler(500, "Failed to fetch shifting request"));
+  }
+};
+
+// Get shifting request for payment processing (NEW)
+export const getShiftingRequestForPayment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const shiftingRequest = await ShiftingRequest.findById(id)
+      .populate("workerId", "name experience rate");
+    
+    if (!shiftingRequest) {
+      return next(errorHandler(404, "Shifting request not found"));
+    }
+    
+    // Check if the request belongs to the user or the user is an admin
+    if (shiftingRequest.userId.toString() !== req.user.id && !req.user.isAdmin) {
+      return next(errorHandler(403, "You are not authorized to access this shifting request"));
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      shiftingRequest 
+    });
+  } catch (error) {
+    console.error("Error fetching shifting request for payment:", error);
+    next(errorHandler(500, "Failed to fetch shifting request payment information"));
+  }
+};
+
 // Get all shifting requests for admin (sorted by newest first)
 export const getShiftingRequests = async (req, res, next) => {
   try {

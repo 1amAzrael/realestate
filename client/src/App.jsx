@@ -249,6 +249,15 @@ function App() {
             </Layout>
           }
         />
+        {/* Shifting payment route */}
+<Route
+  path="/payment/shifting/:requestId"
+  element={
+    <Layout>
+      <PaymentPage />
+    </Layout>
+  }
+/>
       </Routes>
     </BrowserRouter>
   );

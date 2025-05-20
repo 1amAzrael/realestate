@@ -5,7 +5,7 @@ import { useSelector } from 'react-redux';
 import { FaSpinner, FaArrowLeft, FaMoneyBillWave, FaCalendarAlt, FaMapMarkerAlt, FaUser, FaPhone, FaHome } from 'react-icons/fa';
 
 const PaymentPage = () => {
-  const { bookingId } = useParams();
+  const { bookingId, requestId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useSelector((state) => state.user);
@@ -23,38 +23,87 @@ const PaymentPage = () => {
     const fetchBookingData = async () => {
       try {
         setLoading(true);
-
-        // Check if we have data from the HR page
-        if (hrData && hrData.worker) {
-          // ✅ First verify the approval status if we have a shifting request ID
-          if (hrData.shiftingRequestId) {
-            try {
-              const statusRes = await axios.get(`/api/shiftingRequest/status/${hrData.shiftingRequestId}`, {
-                headers: {
-                  Authorization: `Bearer ${currentUser.access_token}`,
-                },
-              });
+        setError(null);
+        
+        // Log for debugging
+        console.log("URL Path:", location.pathname);
+        console.log("Params:", { bookingId, requestId });
+        console.log("HR Data:", hrData);
+        
+        // Determine if we're on a shifting payment page
+        const isShiftingPayment = location.pathname.includes('/payment/shifting/');
+        
+        if (isShiftingPayment && requestId) {
+          // Fetch shifting request data
+          try {
+            const response = await axios.get(`/api/shiftingRequest/${requestId}`, {
+              headers: {
+                Authorization: `Bearer ${currentUser?.access_token}`,
+              },
+            });
+            
+            console.log("Shifting request response:", response.data);
+            
+            if (response.data && (response.data.shiftingRequest || response.data.success)) {
+              // Extract the data based on your API response structure
+              const shiftingData = response.data.shiftingRequest || response.data;
               
-              if (statusRes.data.status !== 'approved') {
-                setError('This request has not been approved yet. Please wait for admin approval.');
-                setLoading(false);
-                return;
+              // Now fetch worker details if needed
+              let workerData = null;
+              if (shiftingData.workerId) {
+                try {
+                  const workerResponse = await axios.get(`/api/worker/${shiftingData.workerId}`, {
+                    headers: {
+                      Authorization: `Bearer ${currentUser?.access_token}`,
+                    },
+                  });
+                  workerData = workerResponse.data.worker || workerResponse.data;
+                } catch (workerErr) {
+                  console.warn("Could not fetch worker details:", workerErr);
+                }
               }
-            } catch (statusError) {
-              console.error('Error checking approval status:', statusError);
-              setError('Unable to verify request status. Please try again.');
-              setLoading(false);
-              return;
+              
+              // Create a booking object from shifting request data
+              setBooking({
+                _id: shiftingData._id,
+                totalAmount: shiftingData.totalAmount || 500,
+                listing: { name: 'Shifting Service' },
+                checkIn: shiftingData.shiftingDate,
+                checkOut: shiftingData.shiftingDate,
+                customerName: shiftingData.customerName || currentUser?.username,
+                customerEmail: currentUser?.email,
+                customerPhone: shiftingData.customerPhone || '',
+                shiftingAddress: shiftingData.shiftingAddress,
+                workerId: shiftingData.workerId,
+                worker: workerData,
+                isShiftingRequest: true
+              });
+            } else {
+              setError('Failed to load shifting request details. Please try again.');
             }
+          } catch (err) {
+            console.error("Error fetching shifting request:", err);
+            setError('Unable to load shifting request data. Please try again later.');
           }
-          
-          // Create a booking object from HR data (only if approved)
+        } else if (bookingId) {
+          // Regular booking
+          try {
+            const response = await axios.get(`/api/booking/${bookingId}`, {
+              headers: {
+                Authorization: `Bearer ${currentUser?.access_token}`,
+              },
+            });
+            setBooking(response.data);
+          } catch (err) {
+            console.error("Error fetching booking:", err);
+            setError('Failed to fetch booking details. Please try again later.');
+          }
+        } else if (hrData && hrData.worker) {
+          // Data passed via location state (for HR data)
           setBooking({
-            _id: 'hr-' + Date.now(), // Generate temporary ID
-            totalAmount: parseFloat(hrData.worker.rate) || 500, // Use worker rate or default
-            listing: {
-              name: 'Shifting Service'
-            },
+            _id: 'hr-' + Date.now(),
+            totalAmount: parseFloat(hrData.worker.rate) || 500,
+            listing: { name: 'Shifting Service' },
             checkIn: hrData.bookingData?.shiftingDate || new Date().toISOString(),
             checkOut: hrData.bookingData?.shiftingDate || new Date().toISOString(),
             customerName: hrData.bookingData?.customerName || currentUser?.username,
@@ -63,61 +112,55 @@ const PaymentPage = () => {
             shiftingAddress: hrData.bookingData?.shiftingAddress || '',
             workerId: hrData.worker._id,
             worker: hrData.worker,
-            shiftingRequestId: hrData.shiftingRequestId
+            shiftingRequestId: hrData.shiftingRequestId,
+            isShiftingRequest: true
           });
-          setLoading(false);
-        }
-        // Otherwise, fetch booking if ID is provided
-        else if (bookingId) {
-          const response = await axios.get(`/api/booking/${bookingId}`);
-          setBooking(response.data);
-          setLoading(false);
-        }
-        // No data available
-        else {
+        } else {
           setError('No booking information available');
-          setLoading(false);
         }
       } catch (err) {
+        console.error("Error in fetchBookingData:", err);
         setError('Failed to fetch booking details');
+      } finally {
         setLoading(false);
-        console.error(err);
       }
     };
 
-    fetchBookingData();
-  }, [bookingId, hrData, currentUser]);
+    if (currentUser) {
+      fetchBookingData();
+    } else {
+      setError('Please sign in to access payment information');
+      setLoading(false);
+    }
+  }, [bookingId, requestId, location, currentUser, hrData]);
 
   const initiateKhaltiPayment = async () => {
     try {
       setPaymentLoading(true);
       setPaymentError(null);
 
-      // Determine if this is an HR booking or a regular booking
-      const isHrBooking = booking._id.toString().startsWith('hr-');
+      // Determine if this is a shifting request or a regular booking
+      const isShiftingRequest = booking.isShiftingRequest || location.pathname.includes('/payment/shifting/');
 
       let payloadData;
       
-      const endpoint = '/api/payments/initiate';
-
-      if (isHrBooking) {
-        // For HR bookings
+      if (isShiftingRequest) {
+        // For shifting payments
         payloadData = {
           amount: booking.totalAmount,
           purchaseData: {
-            name: `Shifting Service - ${booking.worker.name}`,
+            name: `Shifting Service Payment`,
             customerName: booking.customerName || currentUser.username,
-            customerEmail: booking.customerEmail || currentUser.email,
+            customerEmail: currentUser.email,
             customerPhone: booking.customerPhone || '9800000000'
           },
-          // Adding a type field to distinguish the booking type
           bookingType: 'shifting',
           bookingDetails: {
             workerId: booking.workerId,
             shiftingDate: booking.checkIn,
             shiftingAddress: booking.shiftingAddress,
             userId: currentUser._id,
-            shiftingRequestId: booking.shiftingRequestId // Include the original request ID
+            shiftingRequestId: booking.shiftingRequestId
           }
         };
       } else {
@@ -128,35 +171,40 @@ const PaymentPage = () => {
           purchaseData: {
             name: `Booking #${booking._id}`,
             customerName: booking.customerName || currentUser.username,
-            customerEmail: booking.customerEmail || currentUser.email,
+            customerEmail: currentUser.email,
             customerPhone: booking.customerPhone || '9800000000'
           },
           bookingType: 'property'
         };
       }
 
-      const response = await axios.post(endpoint, payloadData, {
+      console.log("Payment payload:", payloadData);
+
+      const response = await axios.post('/api/payments/initiate', payloadData, {
         headers: {
           Authorization: `Bearer ${currentUser.access_token}`,
         },
       });
 
-      if (response.data && response.data.data.payment_url) {
+      console.log("Payment initiation response:", response.data);
+
+      if (response.data && response.data.data && response.data.data.payment_url) {
         // Redirect to Khalti payment page
         window.location.href = response.data.data.payment_url;
       } else {
-        setPaymentError("Failed to initiate Khalti payment");
+        setPaymentError("Failed to initiate payment. Please try again.");
       }
     } catch (err) {
-      setPaymentError(err.response?.data?.error || "Something went wrong");
-      console.error(err);
+      console.error("Payment error:", err);
+      setPaymentError(err.response?.data?.error || "Something went wrong with the payment process");
     } finally {
       setPaymentLoading(false);
     }
   };
 
   // Determine if this is a shifting service or a regular booking
-  const isShiftingService = booking?._id?.toString().startsWith('hr-') ||
+  const isShiftingService = booking?.isShiftingRequest || 
+                            booking?._id?.toString().startsWith('hr-') ||
                             (booking?.workerId && booking?.shiftingAddress);
 
   if (loading) {
@@ -178,6 +226,15 @@ const PaymentPage = () => {
           <div className="text-red-500 text-5xl mb-4">✗</div>
           <h2 className="text-2xl font-bold mb-4 text-gray-800">Error</h2>
           <p className="text-gray-600 mb-6">{error || "No booking information available"}</p>
+          
+          {/* Debug information - remove in production */}
+          <div className="text-xs text-gray-500 mb-4 text-left">
+            <p>Path: {location.pathname}</p>
+            <p>RequestID: {requestId || "Not set"}</p>
+            <p>BookingID: {bookingId || "Not set"}</p>
+            <p>HR Data Present: {hrData ? "Yes" : "No"}</p>
+          </div>
+          
           <div className="flex flex-col gap-3">
             <button
               onClick={() => navigate('/hr')}
@@ -281,14 +338,18 @@ const PaymentPage = () => {
                     
                     <div className="bg-white p-4 rounded-lg shadow-sm">
                       <span className="text-sm text-gray-500">Worker</span>
-                      <p className="font-medium text-gray-800">{booking.worker?.name || 'Selected Worker'}</p>
+                      <p className="font-medium text-gray-800">
+                        {booking.worker?.name || 'Selected Worker'}
+                      </p>
                     </div>
                     
                     <div className="bg-white p-4 rounded-lg shadow-sm">
                       <span className="text-sm text-gray-500 flex items-center">
                         <FaCalendarAlt className="mr-1 text-blue-500" /> Shifting Date
                       </span>
-                      <p className="font-medium text-gray-800">{new Date(booking.checkIn).toLocaleDateString()}</p>
+                      <p className="font-medium text-gray-800">
+                        {new Date(booking.checkIn).toLocaleDateString()}
+                      </p>
                     </div>
                     
                     <div className="bg-white p-4 rounded-lg shadow-sm">
@@ -311,14 +372,18 @@ const PaymentPage = () => {
                       <span className="text-sm text-gray-500 flex items-center">
                         <FaCalendarAlt className="mr-1 text-blue-500" /> Check In
                       </span>
-                      <p className="font-medium text-gray-800">{new Date(booking.checkIn).toLocaleDateString()}</p>
+                      <p className="font-medium text-gray-800">
+                        {new Date(booking.checkIn).toLocaleDateString()}
+                      </p>
                     </div>
                     
                     <div className="bg-white p-4 rounded-lg shadow-sm">
                       <span className="text-sm text-gray-500 flex items-center">
                         <FaCalendarAlt className="mr-1 text-blue-500" /> Check Out
                       </span>
-                      <p className="font-medium text-gray-800">{new Date(booking.checkOut).toLocaleDateString()}</p>
+                      <p className="font-medium text-gray-800">
+                        {new Date(booking.checkOut).toLocaleDateString()}
+                      </p>
                     </div>
                     
                     <div className="bg-white p-4 rounded-lg shadow-sm">
@@ -350,7 +415,9 @@ const PaymentPage = () => {
                     <span className="text-sm text-gray-500 flex items-center">
                       <FaUser className="mr-1 text-blue-500" /> Name
                     </span>
-                    <p className="font-medium text-gray-800">{booking.customerName || currentUser?.username}</p>
+                    <p className="font-medium text-gray-800">
+                      {booking.customerName || currentUser?.username}
+                    </p>
                   </div>
                   
                   <div className="bg-white p-4 rounded-lg shadow-sm">

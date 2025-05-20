@@ -11,7 +11,9 @@ import {
   softDeleteShiftingRequestAdmin,
   restoreShiftingRequest,
   getDeletedShiftingRequests,
-  deleteShiftingRequest
+  deleteShiftingRequest,
+  getShiftingRequest,             // NEW
+  getShiftingRequestForPayment    // NEW
 } from '../controllers/shiftingRequest.controller.js';
 
 const router = express.Router();
@@ -24,6 +26,12 @@ router.get('/all', verifyToken, getShiftingRequests);
 
 // Get shifting request status by ID (for status checking)
 router.get('/status/:id', verifyToken, getShiftingRequestStatus);
+
+// Get a single shifting request by ID (NEW)
+router.get('/:id', verifyToken, getShiftingRequest);
+
+// Get shifting request for payment (NEW)
+router.get('/payment/:id', verifyToken, getShiftingRequestForPayment);
 
 // Update shifting request status
 router.put('/update/:id', verifyToken, updateShiftingRequestStatus);
