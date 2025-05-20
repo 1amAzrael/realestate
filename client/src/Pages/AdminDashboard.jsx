@@ -19,6 +19,8 @@ import AddWorkerModal from "../Component/AddWorkerModal";
 import EditWorkerModal from "../Component/EditWorkerModal";
 import AdminBookingManagement from "../Component/AdminBookingManagement";
 import AdminPaymentHistory from "../Component/AdminPaymentHistory";
+import ViewUserModal from "../Component/ViewUserModal";
+
 
 const DashboardCard = ({ title, value, icon, trend, color, delay }) => {
   return (
@@ -129,6 +131,9 @@ export default function AdminDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [bookingStats, setBookingStats] = useState(null);
   const navigate = useNavigate();
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingUserId, setViewingUserId] = useState(null);
+
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: <FaChartBar /> },
@@ -1240,6 +1245,12 @@ export default function AdminDashboard() {
         workerData={workerData}
         onInputChange={handleInputChange}
         onSave={handleAddWorker}
+      />
+      
+      <ViewUserModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        userId={viewingUserId}
       />
 
       <EditWorkerModal

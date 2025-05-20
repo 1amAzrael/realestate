@@ -1,9 +1,12 @@
-import React from "react";
-import { FaUser, FaEdit, FaTrash, FaUserSlash, FaSearch } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaUser, FaEdit, FaTrash, FaUserSlash, FaSearch, FaEye } from "react-icons/fa";
+import ViewUserModal from "./ViewUserModal";
 
 export default function ManageUsers({ users, onEditUser, onDeleteUser }) {
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [activeFilter, setActiveFilter] = React.useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [viewingUserId, setViewingUserId] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   // Filter users based on search term and active filter
   const filteredUsers = users.filter((user) => {
@@ -20,6 +23,16 @@ export default function ManageUsers({ users, onEditUser, onDeleteUser }) {
     
     return matchesSearch;
   });
+
+  const handleViewUser = (userId) => {
+    setViewingUserId(userId);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setViewingUserId(null);
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
@@ -136,6 +149,13 @@ export default function ManageUsers({ users, onEditUser, onDeleteUser }) {
                   </div>
                   <div className="flex space-x-3 w-full sm:w-auto justify-end">
                     <button
+                      className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      onClick={() => handleViewUser(user._id)}
+                    >
+                      <FaEye className="mr-2" />
+                      <span>View</span>
+                    </button>
+                    <button
                       className="flex items-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                       onClick={() => onEditUser(user)}
                     >
@@ -161,6 +181,13 @@ export default function ManageUsers({ users, onEditUser, onDeleteUser }) {
       <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 text-sm text-gray-600">
         Showing {filteredUsers.length} of {users.filter(Boolean).length} users
       </div>
+
+      {/* View User Modal */}
+      <ViewUserModal 
+        isOpen={isViewModalOpen} 
+        onClose={handleCloseViewModal} 
+        userId={viewingUserId} 
+      />
     </div>
   );
 }

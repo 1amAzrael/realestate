@@ -116,25 +116,25 @@ function ContactLandlord() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 pt-24 pb-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         {/* Header with back button */}
         <div className="flex items-center mb-8">
           <button 
             onClick={handleGoBack} 
-            className="mr-4 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 p-3 rounded-full hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors shadow-md"
+            className="mr-4 bg-white text-blue-600 p-3 rounded-full hover:bg-blue-50 transition-colors shadow-md"
           >
             <FaArrowLeft />
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Contact the Landlord</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Contact the Landlord</h1>
         </div>
 
         {listing && landlord && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Listing Preview */}
-            <div className="md:col-span-1 bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border border-gray-100 dark:border-gray-700">
-              <h2 className="text-xl font-bold mb-6 flex items-center text-gray-800 dark:text-gray-100">
-                <FaHome className="mr-3 text-blue-500 dark:text-blue-400" /> Property Details
+            <div className="md:col-span-1 bg-white rounded-2xl shadow-xl p-6 transform transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border border-gray-100">
+              <h2 className="text-xl font-bold mb-6 flex items-center text-gray-800">
+                <FaHome className="mr-3 text-blue-500" /> Property Details
               </h2>
               
               <div className="relative rounded-xl overflow-hidden mb-6 shadow-md">
@@ -145,8 +145,8 @@ function ContactLandlord() {
                     className="w-full h-48 object-cover hover:scale-110 transition-transform duration-700"
                   />
                 ) : (
-                  <div className="w-full h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <FaHome className="text-gray-400 dark:text-gray-500 h-16 w-16" />
+                  <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                    <FaHome className="text-gray-400 h-16 w-16" />
                   </div>
                 )}
                 
@@ -161,41 +161,41 @@ function ContactLandlord() {
                 </div>
               </div>
               
-              <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-2">{listing.name}</h3>
+              <h3 className="text-lg font-semibold text-blue-600 mb-2">{listing.name}</h3>
               
-              <p className="flex items-center text-gray-600 dark:text-gray-300 mb-4">
-                <FaMapMarkerAlt className="mr-2 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+              <p className="flex items-center text-gray-600 mb-4">
+                <FaMapMarkerAlt className="mr-2 text-gray-400 flex-shrink-0" />
                 {listing.address}
               </p>
               
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="mt-4 pt-4 border-t border-gray-200">
                 {listing.offer && listing.discountPrice !== undefined ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Price:</span>
-                      <span className="text-gray-500 dark:text-gray-400 line-through">
+                      <span className="text-gray-600">Price:</span>
+                      <span className="text-gray-500 line-through">
                         ${listing.price ? listing.price.toLocaleString() : '0'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Discount:</span>
-                      <span className="text-red-500 dark:text-red-400">
+                      <span className="text-gray-600">Discount:</span>
+                      <span className="text-red-500">
                         -${(listing.price - listing.discountPrice).toLocaleString()}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-600 dark:text-gray-300">Final Price:</span>
-                      <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                      <span className="font-medium text-gray-600">Final Price:</span>
+                      <span className="text-lg font-bold text-green-600">
                         ${listing.discountPrice.toLocaleString()}
                       </span>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-gray-600 dark:text-gray-300">Price:</span>
-                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                    <span className="font-medium text-gray-600">Price:</span>
+                    <span className="text-lg font-bold text-green-600">
                       ${listing.price ? listing.price.toLocaleString() : '0'}
-                      {listing.type === 'rent' && <span className="text-sm font-normal text-gray-500 dark:text-gray-400">/month</span>}
+                      {listing.type === 'rent' && <span className="text-sm font-normal text-gray-500">/month</span>}
                     </span>
                   </div>
                 )}
@@ -203,16 +203,16 @@ function ContactLandlord() {
             </div>
 
             {/* Contact Form and Landlord Info */}
-            <div className="md:col-span-2 bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl border border-gray-100 dark:border-gray-700">
-              <div className="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
-                <h2 className="text-xl font-bold mb-6 flex items-center text-gray-800 dark:text-white">
+            <div className="md:col-span-2 bg-white rounded-2xl p-8 shadow-xl border border-gray-100">
+              <div className="border-b border-gray-200 pb-6 mb-6">
+                <h2 className="text-xl font-bold mb-6 flex items-center text-gray-800">
                   <FaUser className="mr-3 text-purple-500" /> Landlord Information
                 </h2>
                 
                 <div className="flex flex-col space-y-4">
                   <div className="flex items-center">
                     <div className="relative mr-4">
-                      <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-purple-100 dark:border-purple-900">
+                      <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-purple-100">
                         <img 
                           src={landlord.photoURL || "https://via.placeholder.com/150"}
                           alt={landlord.username}
@@ -223,43 +223,43 @@ function ContactLandlord() {
                     </div>
                     
                     <div>
-                      <p className="text-xl font-semibold text-gray-800 dark:text-white">{landlord.username}</p>
+                      <p className="text-xl font-semibold text-gray-800">{landlord.username}</p>
                       <div className="flex items-center text-yellow-500 mt-1">
                         {[...Array(5)].map((_, i) => (
                           <FaStar key={i} className={i < 4 ? "text-yellow-500" : "text-gray-300"} />
                         ))}
-                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">4.0</span>
+                        <span className="ml-2 text-sm text-gray-600">4.0</span>
                       </div>
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-                    <div className="flex items-center p-4 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
-                      <div className="bg-purple-100 dark:bg-purple-800 p-3 rounded-full mr-4">
-                        <FaPhone className="text-purple-500 dark:text-purple-300" />
+                    <div className="flex items-center p-4 bg-purple-50 rounded-lg">
+                      <div className="bg-purple-100 p-3 rounded-full mr-4">
+                        <FaPhone className="text-purple-500" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Phone</p>
-                        <p className="font-medium text-gray-800 dark:text-gray-200">
+                        <p className="text-sm text-gray-500">Phone</p>
+                        <p className="font-medium text-gray-800">
                           {landlord.phone || "Not provided"}
                         </p>
                       </div>
                     </div>
                     
-                    <div className="flex items-center p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                      <div className="bg-blue-100 dark:bg-blue-800 p-3 rounded-full mr-4">
-                        <FaEnvelope className="text-blue-500 dark:text-blue-300" />
+                    <div className="flex items-center p-4 bg-blue-50 rounded-lg">
+                      <div className="bg-blue-100 p-3 rounded-full mr-4">
+                        <FaEnvelope className="text-blue-500" />
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
-                        <p className="font-medium text-gray-800 dark:text-gray-200">{landlord.email}</p>
+                        <p className="text-sm text-gray-500">Email</p>
+                        <p className="font-medium text-gray-800">{landlord.email}</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
               
-              <h2 className="text-xl font-bold mb-6 flex items-center text-gray-800 dark:text-white">
+              <h2 className="text-xl font-bold mb-6 flex items-center text-gray-800">
                 <FaPaperPlane className="mr-3 text-green-500" /> Send a Message
               </h2>
               
@@ -271,13 +271,13 @@ function ContactLandlord() {
                     value={message}
                     onChange={handleMessageChange}
                     placeholder="Hi, I am interested in your property. Is it still available?"
-                    className="w-full p-4 border bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                    className="w-full p-4 border bg-gray-50 border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                     rows="5"
                     disabled={messageSent || sendingMessage}
                   ></textarea>
                   
                   {messageSent && (
-                    <div className="bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 p-4 rounded-lg flex items-center animate-fadeIn">
+                    <div className="bg-green-50 text-green-800 p-4 rounded-lg flex items-center animate-fadeIn">
                       <FaCheckCircle className="mr-2" />
                       Message sent successfully!
                     </div>
@@ -310,10 +310,10 @@ function ContactLandlord() {
                   </div>
                   
                   <div className="mt-6 text-center">
-                    <p className="text-gray-600 dark:text-gray-300 text-sm">
+                    <p className="text-gray-600 text-sm">
                       Please mention the property reference when contacting the landlord.
                     </p>
-                    <p className="mt-1 font-mono text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-1 px-2 rounded-md inline-block">
+                    <p className="mt-1 font-mono text-sm bg-gray-100 text-gray-700 py-1 px-2 rounded-md inline-block">
                       Property ID: {listingId.substring(0, 8)}...
                     </p>
                   </div>
