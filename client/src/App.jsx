@@ -32,17 +32,21 @@ const Layout = ({ children }) => {
   // Don't show header and footer on payment verification pages
   const isPaymentPage = location.pathname.includes('/payment/verify') ||
                          location.pathname.includes('/payment/success');
+  
+  
+                      
 
   return (
     <div>
       {/* Conditionally render Header */}
       {!isAdminDashboard && !isPaymentPage && <Header />}
+    
 
       {/* Render children (page content) */}
       <main>{children}</main>
 
       {/* Conditionally render Footer */}
-      {!isAdminDashboard && !isPaymentPage && <Footer />}
+      {!isAdminDashboard && !isPaymentPage &&<Footer />}
     </div>
   );
 };
