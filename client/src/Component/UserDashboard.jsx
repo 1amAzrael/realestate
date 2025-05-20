@@ -1,4 +1,3 @@
-// UserDashboard.jsx - Dashboard for regular users
 import React, { useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
@@ -423,3 +422,4 @@ const SidebarLink = ({ icon, label, isActive, onClick, className = "" }) => {
 };
 
 export default UserDashboard;
+

@@ -73,9 +73,76 @@ const AdminPaymentHistory = () => {
     setPagination({...pagination, page: 1});
   };
 
-  const handleExportData = () => {
-    // This would handle exporting payment data
-    alert('Export functionality would be implemented here');
+  const exportToCSV = (payments) => {
+    // Prepare CSV headers
+    const headers = [
+      'Transaction ID',
+      'User Name',
+      'User Email',
+      'Amount (NPR)',
+      'Payment Date',
+      'Status',
+      'Payment Method',
+      'Booking Type',
+      'Reference ID'
+    ];
+
+    // Prepare CSV data rows
+    const rows = payments.map(payment => [
+      payment.transactionId || 'N/A',
+      payment.userId?.username || 'Unknown',
+      payment.userId?.email || 'N/A',
+      payment.amount?.toLocaleString() || '0',
+      formatDate(payment.paymentDate || payment.createdAt),
+      payment.status,
+      payment.method === 'khalti' ? 'Khalti' : payment.method,
+      payment.bookingType === 'shifting' ? 'Shifting Service' : 'Property Booking',
+      payment.referenceId || 'N/A'
+    ]);
+
+    // Convert to CSV string
+    let csvContent = "data:text/csv;charset=utf-8," 
+      + headers.join(",") + "\n" 
+      + rows.map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(",")).join("\n");
+
+    // Create download link
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `payments_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch all payments without pagination
+      let url = `/api/payments/all?limit=0`; // limit=0 means get all records
+      if (statusFilter !== 'all') url += `&status=${statusFilter}`;
+      if (typeFilter !== 'all') url += `&bookingType=${typeFilter}`;
+      if (searchTerm) url += `&search=${searchTerm}`;
+
+      const res = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${currentUser?.access_token}`,
+        },
+      });
+
+      if (res.data.success) {
+        exportToCSV(res.data.payments);
+      } else {
+        throw new Error(res.data.error || 'Failed to fetch payments for export');
+      }
+    } catch (err) {
+      console.error('Error exporting payments:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to export payments');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Helper function to format date
@@ -132,10 +199,20 @@ const AdminPaymentHistory = () => {
           
           <button 
             onClick={handleExportData}
-            className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg flex items-center hover:bg-white/30 transition-all"
+            disabled={loading}
+            className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg flex items-center hover:bg-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <FaFileExport className="mr-2" />
-            Export Data
+            {loading ? (
+              <>
+                <FaSpinner className="mr-2 animate-spin" />
+                Preparing Export...
+              </>
+            ) : (
+              <>
+                <FaFileExport className="mr-2" />
+                Export Data
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -360,19 +437,6 @@ const AdminPaymentHistory = () => {
           </div>
         </div>
       )}
-      
-      {/* CSS animation styles */}
-      <style jsx="true">{`
-        @keyframes fadeInOut {
-          0% { opacity: 0; transform: translateY(-10px); }
-          10% { opacity: 1; transform: translateY(0); }
-          90% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-10px); }
-        }
-        .animate-fade-in-out {
-          animation: fadeInOut 3s ease-in-out forwards;
-        }
-      `}</style>
     </div>
   );
 };

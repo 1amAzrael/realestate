@@ -250,6 +250,7 @@ export default function AdminDashboard() {
         if (!res.ok) {
           throw new Error(data.message || "Failed to fetch shifting requests");
         }
+        console.log("Fetched shifting requests:", data.shiftingRequests);
         setShiftingRequests(data.shiftingRequests);
         setFilteredRequests(data.shiftingRequests);
       } catch (error) {
@@ -284,109 +285,107 @@ export default function AdminDashboard() {
     fetchDashboardStats();
   }, [currentUser]);
 
-  const getWorkerDetails = (workerId) => {
-    return workers.find(worker => worker._id === workerId) || null;
-  };
-
   const handleAddWorker = async (e) => {
-  e.preventDefault();
-  try {
-    // Convert specialties string to array
-    const specialtiesArray = workerData.specialties
-      .split(',')
-      .map(specialty => specialty.trim())
-      .filter(specialty => specialty.length > 0);
-
-    // Clean the rate field to extract numeric value
-    const cleanRate = workerData.rate.replace(/[$\/hr]/g, '');
-
-    const workerPayload = {
-      ...workerData,
-      specialties: specialtiesArray,
-      rate: cleanRate, // Send just the numeric value
-      rating: parseInt(workerData.rating) // Ensure rating is an integer
-    };
-
-    const res = await fetch("/api/worker/add", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${currentUser?.access_token}`,
-      },
-      body: JSON.stringify(workerPayload),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message || "Failed to add worker");
-    }
-
-    const data = await res.json();
-    setWorkers((prevWorkers) => [...prevWorkers, data.worker]);
-    setIsAddWorkerModalOpen(false);
-    setWorkerData({
-      name: "",
-      experience: "",
-      rate: "",
-      specialties: "",
-      availability: "",
-      rating: 0,
-    });
-    showSuccess("Worker added successfully");
-  } catch (error) {
-    setError(error.message);
-    console.error(error);
-  }
-};
-  const handleEditWorker = async (workerId, updatedData) => {
-  try {
-    // Convert specialties string to array if it's a string
-    let processedData = { ...updatedData };
-    
-    if (typeof updatedData.specialties === 'string') {
-      processedData.specialties = updatedData.specialties
+    e.preventDefault();
+    try {
+      // Convert specialties string to array
+      const specialtiesArray = workerData.specialties
         .split(',')
         .map(specialty => specialty.trim())
         .filter(specialty => specialty.length > 0);
+
+      // Clean the rate field to extract numeric value
+      const cleanRate = workerData.rate.replace(/[$\/hr]/g, '');
+
+      const workerPayload = {
+        ...workerData,
+        specialties: specialtiesArray,
+        rate: cleanRate, // Send just the numeric value
+        rating: parseInt(workerData.rating) // Ensure rating is an integer
+      };
+
+      const res = await fetch("/api/worker/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentUser?.access_token}`,
+        },
+        body: JSON.stringify(workerPayload),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to add worker");
+      }
+
+      const data = await res.json();
+      setWorkers((prevWorkers) => [...prevWorkers, data.worker]);
+      setIsAddWorkerModalOpen(false);
+      setWorkerData({
+        name: "",
+        experience: "",
+        rate: "",
+        specialties: "",
+        availability: "",
+        rating: 0,
+      });
+      showSuccess("Worker added successfully");
+    } catch (error) {
+      setError(error.message);
+      console.error(error);
     }
+  };
 
-    // Clean the rate field to extract numeric value if it contains formatting
-    if (typeof updatedData.rate === 'string' && updatedData.rate.includes('$')) {
-      processedData.rate = updatedData.rate.replace(/[$\/hr]/g, '');
+  const handleEditWorker = async (workerId, updatedData) => {
+    try {
+      // Convert specialties string to array if it's a string
+      let processedData = { ...updatedData };
+      
+      if (typeof updatedData.specialties === 'string') {
+        processedData.specialties = updatedData.specialties
+          .split(',')
+          .map(specialty => specialty.trim())
+          .filter(specialty => specialty.length > 0);
+      }
+
+      // Clean the rate field to extract numeric value if it contains formatting
+      if (typeof updatedData.rate === 'string' && updatedData.rate.includes('$')) {
+        processedData.rate = updatedData.rate.replace(/[$\/hr]/g, '');
+      }
+
+      // Ensure rating is an integer
+      if (updatedData.rating !== undefined) {
+        processedData.rating = parseInt(updatedData.rating);
+      }
+
+      const res = await fetch(`/api/worker/update/${workerId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentUser?.access_token}`,
+        },
+        body: JSON.stringify(processedData),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to update worker");
+      }
+
+      const data = await res.json();
+      setWorkers((prevWorkers) =>
+        prevWorkers.map((worker) =>
+          worker._id === workerId ? data.worker : worker
+        )
+      );
+      setIsEditWorkerModalOpen(false);
+      showSuccess("Worker updated successfully");
+    } catch (error) {
+      setError(error.message);
+      console.error(error);
     }
+  };
 
-    // Ensure rating is an integer
-    if (updatedData.rating !== undefined) {
-      processedData.rating = parseInt(updatedData.rating);
-    }
-
-    const res = await fetch(`/api/worker/update/${workerId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${currentUser?.access_token}`,
-      },
-      body: JSON.stringify(processedData),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message || "Failed to update worker");
-    }
-
-    const data = await res.json();
-    setWorkers((prevWorkers) =>
-      prevWorkers.map((worker) =>
-        worker._id === workerId ? data.worker : worker
-      )
-    );
-    setIsEditWorkerModalOpen(false);
-    showSuccess("Worker updated successfully");
-  } catch (error) {
-    setError(error.message);
-    console.error(error);
-  }
-};
   const handleDeleteWorker = async (workerId) => {
     if (!confirm("Are you sure you want to delete this worker?")) {
       return;
@@ -664,8 +663,6 @@ export default function AdminDashboard() {
             </h1>
 
             <div className="flex items-center space-x-4">
-              
-
               <button
                 onClick={() => navigate("/")}
                 className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-1"
@@ -1031,7 +1028,16 @@ export default function AdminDashboard() {
                 <div className="divide-y divide-gray-200">
                   {filteredRequests.length > 0 ? (
                     filteredRequests.map((request) => {
-                      const workerDetails = request.workerId ? getWorkerDetails(request.workerId) : null;
+                      // Since the backend populates workerId, it should be an object with worker details
+                      // If workerId is populated, it will be an object; if not, it will be just the ID string
+                      const workerDetails = request.workerId && typeof request.workerId === 'object' 
+                        ? request.workerId 
+                        : null;
+                      
+                      // Debug logging (remove in production)
+                      console.log("Request:", request);
+                      console.log("Worker ID:", request.workerId);
+                      console.log("Worker Details:", workerDetails);
                       
                       return (
                         <div key={request._id} className="p-6 hover:bg-gray-50 transition-colors animate-fadeIn">
@@ -1074,32 +1080,60 @@ export default function AdminDashboard() {
                               {workerDetails ? (
                                 <div className="space-y-2">
                                   <p className="flex items-center">
-                                    <span className="font-medium mr-1">Name:</span> {workerDetails.name}
+                                    <span className="font-medium mr-1">Name:</span> 
+                                    <span className="text-gray-800">{workerDetails.name || "No name provided"}</span>
                                   </p>
                                   <p className="flex items-center">
-                                    <span className="font-medium mr-1">Experience:</span> {workerDetails.experience}
+                                    <span className="font-medium mr-1">Experience:</span> 
+                                    <span className="text-gray-800">{workerDetails.experience || "Not specified"}</span>
                                   </p>
                                   <p className="flex items-center">
-                                    <span className="font-medium mr-1">Rate:</span> {workerDetails.rate}
+                                    <span className="font-medium mr-1">Rate:</span> 
+                                    <span className="text-gray-800">
+                                      {workerDetails.rate ? `Rs. ${workerDetails.rate}` : "Not specified"}
+                                    </span>
                                   </p>
-                                  <p className="flex items-center">
-                                    <span className="font-medium mr-1">Specialties:</span> {workerDetails.specialties}
-                                  </p>
-                                  <p className="flex items-center">
-                                    <span className="font-medium mr-1">Rating:</span> 
-                                    <div className="flex items-center ml-1">
-                                      {[...Array(5)].map((_, i) => (
-                                        <FaStar 
-                                          key={i}
-                                          className={i < workerDetails.rating ? "text-yellow-500" : "text-gray-300"}
-                                          size={14}
-                                        />
-                                      ))}
-                                    </div>
-                                  </p>
+                                  {workerDetails.specialties && (
+                                    <p className="flex items-center">
+                                      <span className="font-medium mr-1">Specialties:</span> 
+                                      <span className="text-gray-800">
+                                        {Array.isArray(workerDetails.specialties) 
+                                          ? workerDetails.specialties.join(', ')
+                                          : workerDetails.specialties}
+                                      </span>
+                                    </p>
+                                  )}
+                                  {workerDetails.rating && (
+                                    <p className="flex items-center">
+                                      <span className="font-medium mr-1">Rating:</span> 
+                                      <div className="flex items-center ml-1">
+                                        {[...Array(5)].map((_, i) => (
+                                          <FaStar 
+                                            key={i}
+                                            className={i < workerDetails.rating ? "text-yellow-500" : "text-gray-300"}
+                                            size={14}
+                                          />
+                                        ))}
+                                        <span className="ml-1 text-sm text-gray-600">({workerDetails.rating})</span>
+                                      </div>
+                                    </p>
+                                  )}
                                 </div>
                               ) : (
-                                <p className="text-gray-500 italic">No worker assigned or worker information not available</p>
+                                <div>
+                                  <p className="text-gray-500 italic mb-2">
+                                    No worker assigned or worker information not available
+                                  </p>
+                                  {/* Debug information in development */}
+                                  {process.env.NODE_ENV === 'development' && (
+                                    <div className="text-xs text-gray-400 bg-yellow-50 p-2 rounded">
+                                      <p><strong>Debug Info:</strong></p>
+                                      <p>Worker ID Type: {typeof request.workerId}</p>
+                                      <p>Worker ID Value: {request.workerId ? String(request.workerId) : 'null'}</p>
+                                      <p>Is Object: {typeof request.workerId === 'object' ? 'Yes' : 'No'}</p>
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
